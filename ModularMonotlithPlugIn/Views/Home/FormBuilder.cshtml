@@ -1,0 +1,565 @@
+﻿@using UserContract
+@model DynamicFormModel
+@{
+	ViewData["Title"] = "Dynamic Form";
+}
+
+@section Styles {
+<style>
+	/* Global Styles */
+	body {
+	font-family: Arial, sans-serif;
+	}
+
+	.table th {
+	white-space: nowrap;
+	position: relative;
+	}
+
+	.table td {
+	vertical-align: middle;
+	}
+
+	.form-control {
+	min-width: 150px;
+	}
+
+	.table-responsive {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch;
+	}
+
+	/* Table Enhancements */
+	.table th, .table td {
+	padding: 10px;
+	text-align: center;
+	}
+
+	/* Improved Error Messages */
+	.invalid-feedback {
+	display: none;
+	width: 100%;
+	margin-top: 0.25rem;
+	font-size: 0.875em;
+	color: #dc3545;
+	}
+
+	.was-validated .form-control:invalid ~ .invalid-feedback,
+	.form-control.is-invalid ~ .invalid-feedback {
+	display: block;
+	}
+
+	/* Button Styles */
+	.btn-sm {
+	padding: 0.25rem 0.5rem;
+	font-size: 0.875rem;
+	line-height: 1.5;
+	}
+
+	.form-check-input {
+	margin-top: 0;
+	}
+
+	.add-field, .save-form {
+	margin-top: 15px;
+	padding: 0.5rem 1rem;
+	font-size: 1rem;
+	}
+
+	.remove-field {
+	margin-top: 10px;
+	cursor: pointer;
+	}
+
+		.remove-fieldDynamic {
+			margin-top: 10px;
+			cursor: pointer;
+		}
+
+
+	/* Add Flexbox Layout for Forms */
+	.form-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 15px;
+	}
+
+	.form-row > div {
+	flex: 1;
+	min-width: 250px;
+	}
+
+	/* Responsive Media Queries */
+	@@media (max-width: 768px) {
+	.form-row {
+	flex-direction: column;
+	}
+
+	.table th, .table td {
+	padding: 8px;
+	}
+	}
+</style>
+}
+
+@if (Model.FormName == null || Model.FormName == "")  // Show only if not editing
+{
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-md-12">
+				<div class="card shadow mb-2">
+					<div class="card-header">
+						<h5 class="m-0 font-weight-bold text-primary">Create Menu and SubMenu</h5>
+					</div>
+
+					<div class="card-body">
+
+						<h6 class="mb-1">Create Menu</h6>
+						<form asp-action="AddMenu" method="post" class="g-2 align-items-center mb-2">
+							<div class="form-row">
+								<div class="col-sm-6">
+									<input asp-for="MenuDto.MenuName" class="form-control" placeholder="Enter Menu Name" required />
+								</div>
+								<div class="col-sm-6">
+									<button class="btn btn-success form-control" type="submit">Add Menu</button>
+								</div>
+							</div>
+						</form>
+
+						<!-- Create New Submenu Section -->
+						<h6 class="mb-1">Create Submenu</h6>
+						<form asp-action="AddSubMenu" method="post" class="g-2 align-items-center mb-4">
+							<div class="form-row mb-2">
+								<div class="col-sm-6">
+									<select asp-for="MenuDto.MenuId" asp-items="ViewBag.Menus" class="form-control" required>
+										<option value="">Select a Menu</option>
+									</select>
+								</div>
+								<div class="col-sm-6">
+									<input asp-for="MenuDto.SubMenuName" class="form-control" placeholder="Enter Submenu Name" required />
+								</div>
+							</div>
+							<div class="form-row">
+								<div class="col-sm-12">
+									<button type="submit" class="btn btn-success form-control">Add Submenu</button>
+								</div>
+							</div>
+						</form>
+
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+
+<div class="container-fluid">
+	<div class="row">
+		<div class="col-md-12">
+			<div class="card shadow mb-4">
+				<div class="card-header d-flex justify-content-between align-items-center">
+					<h5 class="m-0 font-weight-bold text-primary">Create Dynamic Form</h5>
+					<button class="btn btn-primary" onclick="location.href='@Url.Action("ViewFrmList", "Home")'">View Form List</button>
+				</div>
+
+				<div class="card-body">
+					@* class="needs-validation" novalidate *@
+					<form asp-controller="Home" asp-action="FormBuilder" method="post">
+						<div class="row mb-3">
+
+							<div class="col-md-6">
+								<label for="MenuDto.MenuId" class="form-label">Menu *</label>
+								<select asp-for="MenuDto.MenuId" asp-items="ViewBag.Menus" id="MenuId_load" class="form-control" required>
+									<option value="">-- Select Menu --</option>
+								</select>
+							</div>
+
+
+							<!-- Show disabled SubMenu dropdown -->
+							<div class="col-md-6">
+								<label for="MenuDto.SubMenuId" class="form-label">Sub Menu</label>
+								@if (Model.TableName != null)
+								{
+									@* <select name="MenuDto.SubMenuId" id="SubMenuId_load" class="form-control" required readonly>
+										<option value="0" selected disabled>-- Select Submenu --</option>
+									</select> *@
+									<select asp-for="MenuDto.SubMenuId" asp-items="ViewBag.subMenu" id="SubMenuId_load" class="form-control" required>
+										<option value="" disabled>-- Select Submenu --</option>
+									</select>
+								}
+								else
+								{
+									<select name="MenuDto.SubMenuId" id="SubMenuId_load" class="form-control" required>
+										<option value="0" selected disabled>-- Select Submenu --</option>
+									</select>
+								}
+								
+							</div>
+
+						</div>
+						<div class="form-group">
+							<label class="form-label">Form Name * </label>
+							<input asp-for="FormName" class="form-control" required />
+						</div>
+
+						<div class="form-group">
+							<label class="form-label">Table Name * </label>
+							@if (Model.TableName != null)
+							{
+								<input asp-for="TableName" class="form-control" required readonly oninput="sanitizeFieldName(this)" />
+							}
+							else
+							{
+								<input asp-for="TableName" class="form-control" required oninput="sanitizeFieldName(this)" />
+							}
+						</div>
+
+
+						
+
+						@* <input type="hidden" id="FormMode" name="FormMode" value="(@Model.FormName != null || @Model.FormName !=''): UPDATE:INSERT" /> *@
+						<input type="hidden" id="FormMode" name="FormMode"value="@(string.IsNullOrEmpty(Model.FormName) ? "INSERT" : "UPDATE")" />
+
+						<input asp-for="Id" type="hidden" />
+
+						<div class="table-responsive">
+							<table class="table table-bordered table-hover" id="fieldsTable">
+								<thead class="thead-light">
+									<tr>
+										<th width="5%">Action</th>
+										<th width="12%">Field Name *</th>
+										<th width="12%">Label *</th>
+										<th width="10%">Data Type *</th>
+										<th width="10%">Field Type *</th>
+										<th width="8%">Length/Value</th>
+										<th width="8%">Default</th>
+										<th width="5%">Required</th>
+										<th width="5%">Duplicate</th>
+										<th width="10%">Tooltip</th>
+										<th width="10%">CSS Classes</th>
+										<th width="5%">Position</th>
+										<th width="15%">Static Options</th>
+										<th width="15%">Dynamic Source (Table|Value|Text)</th>
+									</tr>
+								</thead>
+								<tbody id="fieldsBody">
+									@if (Model?.Fields != null && Model.Fields.Any())
+									{
+										foreach (var field in Model.Fields)
+										{
+											<tr>
+												<input type="hidden" class="field-Id" value="@field.Id" />
+												<td class="text-center">
+													<button type="button" class="btn btn-sm btn-danger remove-fieldDynamic"><i class="fas fa-trash-alt" ></i> Remove</button>
+												</td>
+												<td><input type="text" class="form-control field-name" required value="@field.FieldName" oninput="sanitizeFieldName(this)" readonly /></td>
+												<td><input type="text" class="form-control field-label" required value="@field.Label" /></td>
+												<td>
+													@Html.DropDownList("Datatype",
+													new SelectList((List<SelectListItem>)ViewBag.sqlDataType, "Value", "Text", field.DataType),
+													"-- Select Data Type --",
+													new { @class = "form-control data-type Datatype", required = "required", disabled = "disabled" }
+													)
+
+												</td>
+												<td>
+													@Html.DropDownList("formUserControl",
+													new SelectList((List<SelectListItem>)ViewBag.formUserControl, "Value", "Text", field.FieldType),
+													"-- Select Form control --",
+													new { @class = "form-control data-type formUserControl", required = "required", disabled = "disabled" }
+													)
+
+												</td>
+
+												<td><input type="text" class="form-control field-length" value="@field.LengthValue" required readonly /></td>
+												<td><input type="text" class="form-control field-default" value="@field.DefaultValue" /></td>
+												<td class="text-center"><input type="checkbox" class="form-check-input field-required" @(field.Required ? "checked" : "") readonly /></td>
+												<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" @(field.Duplicate ? "checked" : "") /></td>
+												<td><input type="text" class="form-control field-tooltip" value="@field.Tooltip" /></td>
+												<td><input type="text" class="form-control field-css" value="@field.CssClass" /></td>
+												<td><input type="number" class="form-control field-position" value="@field.Position" min="1" /></td>
+												<td><input type="text" class="form-control field-options" value="@field.OptionsJson" readonly /></td>
+												<td>
+													<input type="text" class="form-control field-datasource"
+														   value="@(string.IsNullOrEmpty(field.DataSourceTable) || string.IsNullOrEmpty(field.DataSourceValueColumn) || string.IsNullOrEmpty(field.DataSourceTextColumn)
+														   ? "": $"{field.DataSourceTable}|{field.DataSourceValueColumn}|{field.DataSourceTextColumn}")" readonly />
+												</td>
+
+											</tr>
+										}
+									}
+									else
+									{
+										<!-- Keep one blank row for new entry -->
+										<tr>
+											<input type="hidden" class="field-Id"   />
+											<td class="text-center"><button type="button" class="btn btn-sm btn-danger remove-field" ><i class="fas fa-trash-alt"></i> Remove</button></td>
+											<td><input type="text" class="form-control field-name" required oninput="sanitizeFieldName(this)" /></td>
+											<td><input type="text" class="form-control field-label" required /></td>
+											<td>@Html.DropDownList("Datatype", (List<SelectListItem>)ViewBag.sqlDataType, "-- Select Data Type --", new { @class = "form-control data-type Datatype", required = "required" })</td>
+											<td>@Html.DropDownList("formUserControl", (List<SelectListItem>)ViewBag.formUserControl, "-- Select Form control --", new { @class = "form-control data-type formUserControl", required = "required" })</td>
+											<td><input type="text" class="form-control field-length" required /></td>
+											<td><input type="text" class="form-control field-default" /></td>
+											<td class="text-center"><input type="checkbox" class="form-check-input field-required" /></td>
+											<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" /></td>
+											<td><input type="text" class="form-control field-tooltip" placeholder="Tooltip text" /></td>
+											<td><input type="text" class="form-control field-css" placeholder="e.g., col-md-6" /></td>
+											<td><input type="number" class="form-control field-position" value="1" min="1" /></td>
+											<td><input type="text" class="form-control field-options" placeholder="e.g., Male,Female,Other" /></td>
+											<td><input type="text" class="form-control field-datasource" placeholder="e.g., GenderTable|Id|Name" /></td>
+										</tr>
+									}
+								</tbody>
+
+							</table>
+						</div>
+
+						<div class="mt-3">
+							<button type="button" class="btn btn-primary add-field">
+								<i class="fas fa-plus-circle"></i> Add Field
+							</button>
+							<button type="submit" class="btn btn-success save-form">
+								<i class="fas fa-save"></i> Save Form
+							</button>
+						</div>
+
+						<select id="dataTypeOptionsTemplate" class="d-none">
+							@Html.Raw("<option value=\"\">-- Select Data Type --</option>")
+							@foreach (var item in (List<SelectListItem>)ViewBag.sqlDataType)
+							{
+								var option = $"<option value=\"{item.Value}\"{(item.Selected ? " selected" : "")}>{item.Text}</option>";
+								@Html.Raw(option)
+							}
+						</select>
+
+						<select id="formControlOptionsTemplate" class="d-none">
+							@Html.Raw("<option value=\"\">-- Select Form Control --</option>")
+							@foreach (var item in (List<SelectListItem>)ViewBag.formUserControl)
+							{
+								var option = $"<option value=\"{item.Value}\"{(item.Selected ? " selected" : "")}>{item.Text}</option>";
+								@Html.Raw(option)
+							}
+						</select>
+						@* <input type="hidden" id="fieldData" name="FieldsJson" /> *@
+						<input type="hidden" id="fieldData" name="FieldsJson" value="" />
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script>
+		function sanitizeFieldName(input) {
+			input.value = input.value.replace(/[^a-zA-Z0-9_]/g, '');
+		}
+
+		$(document).ready(function () {
+			const $fieldsBody = $('#fieldsBody');
+			const $addFieldButton = $('.add-field');
+			const $fieldDataInput = $('#fieldData');
+
+			const dataTypeOptions = $('#dataTypeOptionsTemplate').html();
+			const formControlOptions = $('#formControlOptionsTemplate').html();
+
+			function updateFieldData() {
+				const fields = [];
+
+				$fieldsBody.find('tr').each(function () {
+					const $row = $(this);
+					const fieldName = $row.find('.field-name').val()?.trim();
+					const label = $row.find('.field-label').val()?.trim();
+					const fieldId = $row.find('.field-Id').val()?.trim();
+
+					if (!fieldName || !label) return;
+
+					const fieldType = $row.find('.formUserControl option:selected').text() || "";
+					const dataType = $row.find('.Datatype option:selected').text() || "";
+
+					const parsedId = parseInt(fieldId, 10);
+					if (isNaN(parsedId)) {
+						console.error("Invalid fieldId:", fieldId);
+					}
+
+					const fieldObj = {
+						Id: parsedId,
+						FieldName: fieldName,
+						Label: label,
+						DataType: dataType,
+						FieldType: fieldType,
+						LengthValue: $row.find('.field-length').val() || "",
+						DefaultValue: $row.find('.field-default').val() || "",
+						Required: $row.find('.field-required').is(':checked'),
+						Duplicate: $row.find('.field-duplicate').is(':checked'),
+						Tooltip: $row.find('.field-tooltip').val() || "",
+						CssClass: $row.find('.field-css').val() || "",
+						Position: parseInt($row.find('.field-position').val()) || 0,
+						OptionsJson: $row.find('.field-options').val() || "",
+						DataSourceTable: "",
+						DataSourceValueColumn: "",
+						DataSourceTextColumn: ""
+					};
+
+					const dsRaw = $row.find('.field-datasource').val();
+					if (dsRaw && dsRaw.includes('|')) {
+						const [table, valCol, textCol] = dsRaw.split('|');
+						fieldObj.DataSourceTable = table;
+						fieldObj.DataSourceValueColumn = valCol;
+						fieldObj.DataSourceTextColumn = textCol;
+					}
+
+					fields.push(fieldObj);
+				});
+
+				$fieldDataInput.val(JSON.stringify(fields));
+			}
+
+			function updatePositions() {
+				$fieldsBody.find('tr').each(function (index) {
+					$(this).find('.field-position').val(index + 1);
+				});
+			}
+
+			$addFieldButton.on('click', function () {
+				const newRow = $(`
+					<tr>
+						<td class="text-center"><button type="button" class="btn btn-sm btn-danger remove-field" >Remove</button></td>
+						<td><input type="text" class="form-control field-name" required oninput="sanitizeFieldName(this)"/></td>
+						<td><input type="text" class="form-control field-label" required /></td>
+						<td><select class="form-control Datatype" required>${dataTypeOptions}</select></td>
+						<td><select class="form-control formUserControl" required>${formControlOptions}</select></td>
+						<td><input type="text" class="form-control field-length" required/></td>
+						<td><input type="text" class="form-control field-default" /></td>
+						<td class="text-center"><input type="checkbox" class="form-check-input field-required" /></td>
+						<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" /></td>
+						<td><input type="text" class="form-control field-tooltip" /></td>
+						<td><input type="text" class="form-control field-css" /></td>
+						<td><input type="number" class="form-control field-position" value="${$fieldsBody.children().length + 1}" /></td>
+						<td><input type="text" class="form-control field-options" placeholder="Static options (e.g., Yes:1|No:0)" /></td>
+						<td><input type="text" class="form-control field-datasource" placeholder="Table|ValueColumn|TextColumn" /></td>
+						<td><input type="hidden" class="field-Id" value="0" /></td>
+					</tr>
+				`);
+
+				$fieldsBody.append(newRow);
+
+				//newRow.find('.remove-fieldDynamic').on('click', handleRemoveField());
+				newRow.on('input change', updateFieldData);
+
+				updateFieldData();
+
+				newRow.find('.remove-field').on('click', function () {
+					newRow.remove();
+					updateFieldData();
+					updatePositions();
+				});
+			});
+
+			function handleRemoveField() {
+				const $row = $(this).closest('tr');
+				const fieldId = $row.find('.field-Id').val()?.trim();
+				const parsedId = parseInt(fieldId, 10);
+					if (isNaN(parsedId)) {
+						console.error("Invalid fieldId:", fieldId);
+					}
+				if (confirm("Are you sure you want to remove this field?")) {
+					if (parsedId && !isNaN(parsedId) && parseInt(parsedId) > 0) {
+						$.ajax({
+							url: '/Home/DeleteField', // <-- Replace with your actual controller route
+							type: 'POST',
+							data: { id: parsedId },
+							success: function () {
+								$row.remove();
+								updateFieldData();
+								updatePositions();
+								toastr.success("Field deleted successfully.");
+							},
+							error: function () {
+								toastr.error("Error deleting field.");
+							}
+						});
+					} else {
+						$row.remove();
+						updateFieldData();
+						updatePositions();
+					}
+				}
+			}
+
+			$fieldsBody.on('click', '.remove-field', function () {
+		$(this).closest('tr').remove();
+		updateFieldData();
+		updatePositions();
+		});
+			 $fieldsBody.on('click', '.remove-fieldDynamic', handleRemoveField);
+
+			$('form').on('submit', function () {
+				document.querySelector(".Datatype").disabled = false;
+				document.querySelector(".formUserControl").disabled = false;
+				updateFieldData();
+			});
+
+			toastr.options = {
+				closeButton: true,
+				progressBar: true,
+				positionClass: "toast-top-right",
+				timeOut: "4000"
+			};
+
+		@if (TempData["SuccessMessage"] != null)
+		{
+			<text>toastr.success("@TempData["SuccessMessage"]");</text>
+		}
+		@if (TempData["ErrorMessage"] != null)
+		{
+			<text>toastr.error("@TempData["ErrorMessage"]");</text>
+		}
+		@if (TempData["ToastMessage"] != null && TempData["ToastType"] != null)
+		{
+			if (TempData["ToastType"].ToString() == "success")
+			{
+				<text>toastr.success("@TempData["ToastMessage"]");</text>
+			}
+			else
+			{
+				<text>toastr.error("@TempData["ToastMessage"]");</text>
+			}
+		}
+
+			// Menu/Submenu dynamic loading
+			const $menuDropdown = $('#MenuId_load');
+			const $submenuDropdown = $('#SubMenuId_load');
+
+			$menuDropdown.on('change', function () {
+				const selectedMenuId = $(this).val();
+				$submenuDropdown.empty().append('<option value="">-- Select Submenu --</option>').prop('readonly', true);
+
+				if (selectedMenuId) {
+					$.ajax({
+						url: `/Home/GetSubMenus`,
+						type: 'GET',
+						data: { menuId: selectedMenuId },
+						success: function (data) {
+							if (data.length > 0) {
+								$.each(data, function (i, item) {
+									$submenuDropdown.append(
+										$('<option>', {
+											value: item.id,
+											text: item.subMenuName
+										})
+									);
+								});
+								$submenuDropdown.prop('readonly', false);
+							}
+						},
+						error: function (xhr, status, error) {
+							console.error('Error fetching submenus:', error);
+						}
+					});
+				}
+			});
+		});
+	</script> 
+}

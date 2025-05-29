@@ -1,0 +1,107 @@
+﻿ @using UserContract
+ @using Newtonsoft.Json
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model DynamicFormModel
+@{
+	ViewData["Title"] = "Dynamic Form";
+}
+
+<h2 class="text-center">@Model.FormName</h2>
+
+<form method="post" action="saveDynamicformData">
+	<input type="hidden" name="FormName" value="@Model.FormName" />
+	<input type="hidden" name="TableName" value="@Model.TableName" />
+	<input type="hidden" name="FormId" value="@Model.Id" />
+	<div class="container">
+		@foreach (var field in Model.Fields)
+		{
+
+			<div class="row">
+				<div class="col-md-6 mb-2">
+					<div class="form-group">
+						<label class="form-label mb-0">@field.Label</label>
+
+						@if (field.FieldType == "DropDown")
+						{
+							var json = TempData[$"Options_" + field.FieldName]?.ToString();
+							var options = JsonConvert.DeserializeObject<List<SelectListItem>>(json ?? "[]");
+
+							@* <label>@field.FieldName</label> *@
+							<select name="@field.FieldName" class="form-control" required="@(field.Required)">
+								<option value="">-- Please select --</option>
+								@foreach (var opt in options)
+								{
+									<option value="@opt.Value">@opt.Text</option>
+								}
+							</select>
+
+						}
+						else if (field.FieldType == "RadioButton")
+						{
+							var options = field.OptionsJson?.Split(',') ?? new string[0];
+							foreach (var opt in options)
+							{
+								var trimmed = opt.Trim();
+								var inputId = $"{field.FieldName}_{trimmed}";
+								<div class="form-check">
+
+									<input type="radio" value="@opt" name="@field.FieldName" required="@(field.Required)" id="@inputId" />
+									<label class="form-check-label" for="@inputId">@trimmed</label>
+								</div>
+							}
+						}
+						else if (field.FieldType == "CheckBox")
+						{
+							var options = field.OptionsJson?.Split(',') ?? new string[0];
+							foreach (var opt in options)
+							{
+								var trimmed = opt.Trim();
+								var inputId = $"{field.FieldName}_{trimmed}";
+								<div class="form-check">
+
+									<input type="@field.FieldType" value="@opt" name="@field.FieldName" required="@(field.Required)" id="@inputId" />
+									<label class="form-check-label" for="@inputId">@trimmed</label>
+								</div>
+							}
+						}
+						else if (field.FieldType == "TextArea")
+						{
+							<textarea class="@field.CssClass" name="@field.FieldName" id="@field.FieldName" title="@field.Tooltip" required="@(field.Required)"></textarea>
+						}
+						else if (field.FieldType == "DatePicker")
+						{
+							<input type="date" name="@field.FieldName" class="form-control" title="@field.Tooltip" required="@(field.Required)" />
+						}
+						else
+						{
+							<input type="@field.FieldType" name="@field.FieldName" class="form-control" title="@field.Tooltip" required="@(field.Required)" />
+						}
+					</div>
+				</div>
+
+			</div>
+
+		}
+	</div>
+	<div class="container mt-3">
+		<div class="row">
+			<div class="col-md-6">
+				<button type="submit" class="btn btn-primary align-items-center justify-content-center">Submit</button>
+				<button type="reset" class="btn btn-secondary align-items-center justify-content-center">Cancel</button>
+			</div>
+		</div>
+	</div>
+
+</form>
+<script>
+	$(function () {
+	@if (TempData["ToastrSuccess"] != null)
+	{
+		<text>toastr.success("@TempData["ToastrSuccess"]");</text>
+	}
+	@if (TempData["ToastrError"] != null)
+	{
+		<text>toastr.error("@TempData["ToastrError"]");</text>
+	}
+	});
+</script>

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Models\CourseMaster.cs" />
+    <Compile Remove="Models\Form.cs" />
+    <Compile Remove="Models\FormField.cs" />
+    <Compile Remove="Models\FormUserControl.cs" />
+    <Compile Remove="Models\ModularContext.cs" />
+    <Compile Remove="Models\Module.cs" />
+    <Compile Remove="Models\Shyam.cs" />
+    <Compile Remove="Models\SqlDatatypeList.cs" />
+    <Compile Remove="Models\UserMaster.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Prism.Core" Version="9.0.537" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DataContextLibr\DataContextLibr.csproj" />
+    <ProjectReference Include="..\UserContract\UserContract.csproj" />
+</ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+    <Folder Include="Modules\" />
+  </ItemGroup>
+
+</Project>

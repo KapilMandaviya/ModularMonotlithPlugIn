@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>@ViewData["Title"] - ModularMonotlithPlugIn</title>
+
+	@RenderSection("Styles", required: false)
+
+	<!-- Bootstrap CSS (local) -->
+	<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+	<!-- Custom Site CSS -->
+	<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+	<link rel="stylesheet" href="~/ModularMonotlithPlugIn.styles.css" asp-append-version="true" />
+
+	<!-- Toastr CSS (CDN) -->
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+
+	<!-- DataTables CSS (CDN) -->
+	<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+</head>
+<body>
+	<header>
+		<nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+			<div class="container-fluid">
+				<a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Modular Monolith</a>
+				<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+						aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+				</button>
+				<div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+					<ul class="navbar-nav" id="dynamic-menu">
+						<!-- Dynamic Menu Items Render Here -->
+					</ul>
+				</div>
+			</div>
+		</nav>
+	</header>
+
+	<div class="container">
+		<main role="main" class="pb-3">
+			@RenderBody()
+		</main>
+	</div>
+
+	<footer class="border-top footer text-muted">
+		<!-- Optional footer content -->
+	</footer>
+
+	<!-- jQuery (CDN) -->
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+	<!-- DataTables JS (CDN) -->
+	<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+	<!-- Toastr JS (CDN) -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+	<!-- Bootstrap Bundle (local) -->
+	<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+	<!-- Site JS -->
+	<script src="~/js/site.js" asp-append-version="true"></script>
+
+	<!-- Optional Scripts -->
+	@await RenderSectionAsync("Scripts", required: false)
+	<partial name="_ValidationScriptsPartial" />
+
+	<!-- Dynamic Menu Loader -->
+	<script>
+
+		$(document).ready(function () {
+			$.ajax({
+				url: '/Home/getMenuSubMenuItems',
+				method: 'GET',
+				success: function (data) {
+					let menuHtml = `
+						<li class="nav-item">
+							<a class="nav-link text-dark" href="/Home/Index">Home</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link text-dark" href="/Home/ViewFrmList">Form List</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link text-dark" href="/Home/FormBuilder">Form Builder</a>
+						</li>
+					`;
+
+					data.forEach(function (item) {
+						if (item.subMenu && item.subMenu.length > 0) {
+							menuHtml += `
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle text-dark" href="#" id="dropdown_${item.id}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+										${item.menuName}
+									</a>
+									<ul class="dropdown-menu" aria-labelledby="dropdown_${item.id}">`;
+
+							item.subMenu.forEach(function (subItem) {
+								const url = `/Home/DynamicView?formId=${subItem.id}`;
+								menuHtml += `<li><a class="dropdown-item" href="${url}">${subItem.subMenuName}</a></li>`;
+							});
+
+							menuHtml += `</ul></li>`;
+						} else {
+							const url = `/Home/DynamicView?formId=${item.id}`;
+							menuHtml += `
+								<li class="nav-item">
+									<a class="nav-link text-dark" href="${url}">${item.menuName}</a>
+								</li>`;
+						}
+					});
+
+					$('#dynamic-menu').html(menuHtml);
+				},
+
+				error: function () {
+					toastr.error("Could not load menu.");
+				}
+			});
+		});
+
+
+
+	</script>
+</body>
+</html>
+
+
+
+@* <script>
+
+			$(document).ready(function () {
+		$.ajax({
+			url: '/Home/getMenuSubMenuItems',
+			method: 'GET',
+			success: function (data) {
+				var menuHtml = '';
+				data.forEach(function (item) {
+					if (item.subMenu && item.subMenu.length > 0) {
+						// With Submenu (Dropdown)
+						menuHtml += `
+							<li class="nav-item">
+								<a class="nav-link text-dark" href="/Home/Index">Home</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-dark" href="/Home/ViewFrmList">Form List</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-dark" href="/Home/FormBuilder">Form Builder</a>
+							</li>
+
+
+							<li class="nav-item dropdown">
+								<a class="nav-link dropdown-toggle text-dark" href="#" id="dropdown_${item.id}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+									${item.menuName}
+								</a>
+								<ul class="dropdown-menu" aria-labelledby="dropdown_${item.id}">`;
+
+						item.subMenu.forEach(function (subItem) {
+							const url = `/Home/DynamicView?formId=${subItem.id}`;
+							menuHtml += `<li><a class="dropdown-item" href="${url}">${subItem.subMenuName}</a></li>`;
+						});
+
+						menuHtml += `</ul></li>`;
+					} else {
+						// Only Menu (No Dropdown)
+						const url = `/Home/DynamicView?formId=${item.id}`;
+						menuHtml += `
+							<li class="nav-item" >
+								<a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="ViewFrmList">Form List</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="FormBuilder">Form Builder</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-dark" href="${url}">${item.menuName}</a>
+							</li>`;
+					}
+				});
+
+				$('#dynamic-menu').html(menuHtml);
+			},
+			error: function () {
+				toastr.error("Could not load menu.");
+			}
+		});
+	});
+
+
+
+</script> *@
