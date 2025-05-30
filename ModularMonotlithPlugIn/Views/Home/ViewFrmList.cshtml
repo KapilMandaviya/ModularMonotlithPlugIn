@@ -90,5 +90,32 @@
                 });
             }
         }
+
+                toastr.options = {
+                closeButton: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                timeOut: "4000"
+            };
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>toastr.success("@TempData["SuccessMessage"]");</text>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <text>toastr.error("@TempData["ErrorMessage"]");</text>
+        }
+        @if (TempData["ToastMessage"] != null && TempData["ToastType"] != null)
+        {
+            if (TempData["ToastType"].ToString() == "success")
+            {
+                <text>toastr.success("@TempData["ToastMessage"]");</text>
+            }
+            else
+            {
+                <text>toastr.error("@TempData["ToastMessage"]");</text>
+            }
+        }
     </script>
 }

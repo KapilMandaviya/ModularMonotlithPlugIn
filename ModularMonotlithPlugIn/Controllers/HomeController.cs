@@ -152,7 +152,7 @@ namespace ModularMonotlithPlugIn.Controllers
             ViewBag.subMenu = subMenuListData.Select(x => new SelectListItem
             {
                 Text = x.SubMenuName,
-                Value = x.Id.ToString()
+                Value = x.SubMenuId.ToString()
             }).ToList();
 
             return View(formFields);
@@ -186,12 +186,14 @@ namespace ModularMonotlithPlugIn.Controllers
                     var message = await dynamic.SaveFormdataAsync(model);
                     TempData["ToastType"] = message.result == 1 ? "success" : "error";
                     TempData["ToastMessage"] = message.errorMessage;
+                    return View("ViewFrmList");
                 }
                 else if (FormMode== "UPDATE")
                 {
                     var message = await dynamic.UpdateFormdataAsync(model);
                     TempData["ToastType"] = message.result == 1 ? "success" : "error";
                     TempData["ToastMessage"] = message.errorMessage;
+                    return View("ViewFrmList");
                 }
 
 

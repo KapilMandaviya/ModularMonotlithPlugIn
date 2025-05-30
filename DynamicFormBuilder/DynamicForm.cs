@@ -577,7 +577,7 @@ namespace DynamicFormBuilder
 
                     transaction.Commit();
                     connection.Close();
-                    return (1, "Form and fields saved successfully.");
+                    return (1, "Form and fields Updated successfully.");
                 }
                 catch (Exception ws)
                 {

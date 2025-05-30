@@ -76,15 +76,13 @@
 				method: 'GET',
 				success: function (data) {
 					let menuHtml = `
-						<li class="nav-item">
-							<a class="nav-link text-dark" href="/Home/Index">Home</a>
+					<li class="nav-item">
+							<a class="nav-link text-dark" href="/Home/FormBuilder">Form Builder</a>
 						</li>
 						<li class="nav-item">
 							<a class="nav-link text-dark" href="/Home/ViewFrmList">Form List</a>
 						</li>
-						<li class="nav-item">
-							<a class="nav-link text-dark" href="/Home/FormBuilder">Form Builder</a>
-						</li>
+						
 					`;
 
 					data.forEach(function (item) {

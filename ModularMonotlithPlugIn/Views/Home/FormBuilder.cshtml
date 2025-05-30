@@ -24,7 +24,7 @@
 	min-width: 150px;
 	}
 
-	.table-responsive {
+.table-responsive {
 	overflow-x: auto;
 	-webkit-overflow-scrolling: touch;
 	}
@@ -125,7 +125,7 @@
 								</div>
 							</div>
 						</form>
-
+							
 						<!-- Create New Submenu Section -->
 						<h6 class="mb-1">Create Submenu</h6>
 						<form asp-action="AddSubMenu" method="post" class="g-2 align-items-center mb-4">
@@ -171,26 +171,24 @@
 							<div class="col-md-6">
 								<label for="MenuDto.MenuId" class="form-label">Menu *</label>
 								<select asp-for="MenuDto.MenuId" asp-items="ViewBag.Menus" id="MenuId_load" class="form-control" required>
-									<option value="">-- Select Menu --</option>
+									<option value="0">-- Select Menu --</option>
 								</select>
 							</div>
 
-
+						
 							<!-- Show disabled SubMenu dropdown -->
 							<div class="col-md-6">
 								<label for="MenuDto.SubMenuId" class="form-label">Sub Menu</label>
-								@if (Model.TableName != null)
+								@if (Model.Id != null && Model.Id!= 0)
 								{
-									@* <select name="MenuDto.SubMenuId" id="SubMenuId_load" class="form-control" required readonly>
-										<option value="0" selected disabled>-- Select Submenu --</option>
-									</select> *@
+									 
 									<select asp-for="MenuDto.SubMenuId" asp-items="ViewBag.subMenu" id="SubMenuId_load" class="form-control" required>
-										<option value="" disabled>-- Select Submenu --</option>
+										<option value="0" disabled>-- Select Submenu --</option>
 									</select>
 								}
 								else
 								{
-									<select name="MenuDto.SubMenuId" id="SubMenuId_load" class="form-control" required>
+									<select asp-for="MenuDto.SubMenuId"  id="SubMenuId_load" class="form-control" required>
 										<option value="0" selected disabled>-- Select Submenu --</option>
 									</select>
 								}
@@ -534,7 +532,7 @@
 
 			$menuDropdown.on('change', function () {
 				const selectedMenuId = $(this).val();
-				$submenuDropdown.empty().append('<option value="">-- Select Submenu --</option>').prop('readonly', true);
+				$submenuDropdown.empty().append('<option value="0">-- Select Submenu --</option>').prop('readonly', true);
 
 				if (selectedMenuId) {
 					$.ajax({
@@ -542,11 +540,13 @@
 						type: 'GET',
 						data: { menuId: selectedMenuId },
 						success: function (data) {
+							 
 							if (data.length > 0) {
 								$.each(data, function (i, item) {
+									
 									$submenuDropdown.append(
 										$('<option>', {
-											value: item.id,
+											value: item.subMenuId,
 											text: item.subMenuName
 										})
 									);
