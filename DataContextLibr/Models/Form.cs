@@ -22,7 +22,6 @@ public partial class Form
     public DateTime? UpdatedAt { get; set; }
 
     public int? UpdatedId { get; set; }
-
     public virtual ICollection<FormField> Fields { get; set; } = new List<FormField>();
 
 }

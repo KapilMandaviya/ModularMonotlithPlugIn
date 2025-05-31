@@ -17,7 +17,7 @@ public partial class FormField
 
     public string FieldType { get; set; } = null!;
 
-    public int? LengthValue { get; set; }
+    public string? LengthValue { get; set; }
 
     public string? DefaultValue { get; set; }
 
@@ -38,7 +38,4 @@ public partial class FormField
     public string? OptionTextField { get; set; }
 
     public string? OptionsJson { get; set; }
-
-    public virtual Form Form { get; set; } = null!;
-
 }

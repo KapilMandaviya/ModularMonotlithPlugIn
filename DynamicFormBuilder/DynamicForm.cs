@@ -2,6 +2,7 @@
 using DataContextLibr.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SqlServer.Server;
@@ -93,7 +94,8 @@ namespace DynamicFormBuilder
                     Duplicate = dto.Duplicate,
                     FieldType = dto.FieldType,
                     Label = dto.Label,
-                    LengthValue = string.IsNullOrWhiteSpace(dto.LengthValue) ? (int?)null : int.Parse(dto.LengthValue),
+                    LengthValue = dto.IsMaxLength ? "MAX" : dto.LengthValue,
+                    //LengthValue = string.IsNullOrWhiteSpace(dto.LengthValue) ? "": dto.LengthValue,
                     Position = dto.Position,
                     Required = dto.Required,
                     Tooltip = dto.Tooltip,
@@ -112,7 +114,11 @@ namespace DynamicFormBuilder
                 var fieldsSql = form.Fields.Select(f =>
                 {
                     string type = f.DataType.ToUpper();
-                    string length = (type == "VARCHAR" || type == "NVARCHAR") && int.Parse(f.LengthValue) != null ? $"({f.LengthValue})" : "";
+                    ///string length = (type == "VARCHAR" || type == "NVARCHAR" || type== "VARBINARY") && f.IsMaxLength ? "MAX" : f.LengthValue ;
+                    //string length = (type == "VARCHAR" || type == "NVARCHAR") && int.Parse(f.LengthValue) != null ? $"({f.LengthValue})" : "";
+                    string length = (type == "VARCHAR" || type == "NVARCHAR" || type == "VARBINARY")
+                        ? (f.IsMaxLength ? "(MAX)" : $"({f.LengthValue})") : "";
+
                     string nullable = f.Required ? "NOT NULL" : "NULL";
                     return $"{f.FieldName} {type}{length} {nullable}";
                 });
@@ -129,7 +135,8 @@ namespace DynamicFormBuilder
                     var alterStatements = form.Fields.Select(f =>
                     {
                         string type = f.DataType.ToUpper();
-                        string length = (type == "VARCHAR" || type == "NVARCHAR") ? $"({f.LengthValue})" : "";
+                        string length = (type == "VARCHAR" || type == "NVARCHAR" || type == "VARBINARY")
+                            ? (f.IsMaxLength ? "(MAX)" : $"({f.LengthValue})") : "";
                         string nullable = "NULL";
                         return $"ALTER TABLE {form.TableName} ADD {f.FieldName} {type}{length} {nullable};";
                     });
@@ -506,7 +513,7 @@ namespace DynamicFormBuilder
                         existingField.Duplicate = dto.Duplicate;
                         existingField.FieldType = dto.FieldType;
                         existingField.Label = dto.Label;
-                        existingField.LengthValue = string.IsNullOrWhiteSpace(dto.LengthValue) ? (int?)null : int.Parse(dto.LengthValue);
+                        existingField.LengthValue = dto.IsMaxLength ? "MAX" : dto.LengthValue;
                         existingField.Position = dto.Position;
                         existingField.Required = dto.Required;
                         existingField.Tooltip = dto.Tooltip;
@@ -528,7 +535,7 @@ namespace DynamicFormBuilder
                             Duplicate = dto.Duplicate,
                             FieldType = dto.FieldType,
                             Label = dto.Label,
-                            LengthValue = string.IsNullOrWhiteSpace(dto.LengthValue) ? (int?)null : int.Parse(dto.LengthValue),
+                            LengthValue = dto.IsMaxLength ? "MAX" : dto.LengthValue,
                             Position = dto.Position,
                             Required = dto.Required,
                             Tooltip = dto.Tooltip,
@@ -556,7 +563,8 @@ namespace DynamicFormBuilder
                             .Select(f =>
                             {
                                 string type = f.DataType.ToUpper();
-                                string length = (type == "VARCHAR" || type == "NVARCHAR") ? $"({f.LengthValue})" : "";
+                                string length = (type == "VARCHAR" || type == "NVARCHAR" || type == "VARBINARY")
+                                    ? (f.IsMaxLength ? "(MAX)" : $"({f.LengthValue})") : "";
                                 //string nullable = f.Required ? "NOT NULL" : "NULL";
                                 string nullable = "NULL";
                                 return $"ALTER TABLE {form.TableName} ADD {f.FieldName} {type}{length} {nullable};";
@@ -568,11 +576,11 @@ namespace DynamicFormBuilder
                 }
                 // 3. Save changes
                 await _context.SaveChangesAsync();
-                 
+
                 using var transaction = _context.Database.BeginTransaction();
                 try
                 {
-                    if(!string.IsNullOrEmpty(sql))
+                    if (!string.IsNullOrEmpty(sql))
                         this._context.Database.ExecuteSqlRaw(sql);
 
                     transaction.Commit();
@@ -593,30 +601,30 @@ namespace DynamicFormBuilder
             }
         }
 
-        public  (int result, string errorMessage) DeleteFormFields(int? fieldId)
+        public (int result, string errorMessage) DeleteFormFields(int? fieldId)
 
         {
-            using var transaction =  _context.Database.BeginTransaction();
+            using var transaction = _context.Database.BeginTransaction();
 
             try
             {
-                var formField =  _context.FormFields.FirstOrDefault(x => x.Id == fieldId);
+                var formField = _context.FormFields.FirstOrDefault(x => x.Id == fieldId);
                 if (formField == null)
                     return (0, "Field not found");
 
                 _context.FormFields.Remove(formField);
-                 _context.SaveChanges();
+                _context.SaveChanges();
 
                 var TableName = _context.Forms.FirstOrDefault(x => x.Id == formField.FormId);
                 // Delete all related form fields
-               
+
                 using (var context = new ModularContext())
                 {
-                    string sql = $"ALTER TABLE {TableName.TableName } DROP COLUMN {formField.FieldName}";
+                    string sql = $"ALTER TABLE {TableName.TableName} DROP COLUMN {formField.FieldName}";
                     context.Database.ExecuteSqlRaw(sql);
                 }
 
-                 transaction.Commit();
+                transaction.Commit();
 
                 return (1, "Field deleted successfully");
             }
@@ -624,6 +632,67 @@ namespace DynamicFormBuilder
             {
                 transaction.Rollback();
                 return (0, $"Error occurred: {ex.Message}");
+            }
+        }
+
+        public async Task<(List<string> Columns, List<Dictionary<string, string>> Rows)> GetFormData(string tableName)
+        {
+            try
+            {
+                var connection = _context.Database.GetDbConnection();
+
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    connection.Open(); // Dispose-like behavior
+                }
+                var columns = new List<string>();
+                var rows = new List<Dictionary<string, string>>();
+
+
+                //var existingTable = await _context.Database
+                //             .SqlQueryRaw<string>($@" SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES 
+                //            WHERE TABLE_NAME = '{tableName}'
+                //        ").FirstOrDefaultAsync();
+                //if (existingTable == null)
+                //    throw new Exception("table not found");
+
+
+                //    if (!existingTable.Contains(tableName))
+                //        throw new Exception("Invalid table name.");
+
+
+
+                await using var conn = new SqlConnection(connection.ConnectionString);
+                await conn.OpenAsync();
+
+                var query = $"SELECT * FROM [{tableName}]";  // Bracket-safe for table names
+                using var cmd = new SqlCommand(query, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+
+                // Columns
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    columns.Add(reader.GetName(i));
+                }
+
+                // Rows
+                while (await reader.ReadAsync())
+                {
+                    var row = new Dictionary<string, string>();
+                    foreach (var col in columns)
+                    {
+                        row[col] = reader[col]?.ToString();
+                    }
+                    rows.Add(row);
+                }
+
+                return (columns, rows);
+
+            }
+            catch (Exception ex)
+            {
+
+                throw;
             }
         }
     }

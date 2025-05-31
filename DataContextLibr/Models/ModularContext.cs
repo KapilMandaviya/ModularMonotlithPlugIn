@@ -29,15 +29,11 @@ public partial class ModularContext : DbContext
 
     public virtual DbSet<Module> Modules { get; set; }
 
-    public virtual DbSet<Shyam> Shyams { get; set; }
-
     public virtual DbSet<SqlDatatypeList> SqlDatatypeLists { get; set; }
 
     public virtual DbSet<State> States { get; set; }
 
     public virtual DbSet<SubMenu> SubMenus { get; set; }
-
-    public virtual DbSet<Test> Tests { get; set; }
 
     public virtual DbSet<UserMaster> UserMasters { get; set; }
 
@@ -55,6 +51,8 @@ public partial class ModularContext : DbContext
                 .HasMaxLength(200)
                 .IsUnicode(false);
         });
+
+       
 
         modelBuilder.Entity<CourseMaster>(entity =>
         {
@@ -83,6 +81,9 @@ public partial class ModularContext : DbContext
             entity.Property(e => e.FieldType).HasMaxLength(255);
             entity.Property(e => e.FormId).HasColumnName("Form_Id");
             entity.Property(e => e.Label).HasMaxLength(255);
+            entity.Property(e => e.LengthValue)
+                .HasMaxLength(50)
+                .IsUnicode(false);
             entity.Property(e => e.OptionTableName).HasMaxLength(100);
             entity.Property(e => e.OptionTextField).HasMaxLength(100);
             entity.Property(e => e.OptionValueField).HasMaxLength(100);
@@ -100,7 +101,7 @@ public partial class ModularContext : DbContext
 
         modelBuilder.Entity<Menu>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Menus__3214EC07B5BC3BAB");
+            entity.HasKey(e => e.Id).HasName("PK__Menus__3214EC07CC5A4492");
 
             entity.Property(e => e.Name).HasMaxLength(100);
         });
@@ -111,26 +112,6 @@ public partial class ModularContext : DbContext
 
             entity.Property(e => e.DllPath).HasMaxLength(255);
             entity.Property(e => e.Name).HasMaxLength(100);
-        });
-
-        modelBuilder.Entity<Shyam>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Shyam__3214EC07AD6085D7");
-
-            entity.ToTable("Shyam");
-
-            entity.Property(e => e.FirstName)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("First_name");
-            entity.Property(e => e.LastName)
-                .HasMaxLength(50)
-                .IsUnicode(false)
-                .HasColumnName("Last_Name");
-            entity.Property(e => e.Mobile).HasMaxLength(50);
-            entity.Property(e => e.Password)
-                .HasMaxLength(60)
-                .IsUnicode(false);
         });
 
         modelBuilder.Entity<SqlDatatypeList>(entity =>
@@ -151,40 +132,9 @@ public partial class ModularContext : DbContext
 
         modelBuilder.Entity<SubMenu>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__SubMenus__3214EC073B538768");
+            entity.HasKey(e => e.Id).HasName("PK__SubMenus__3214EC07DD786A32");
 
             entity.Property(e => e.Name).HasMaxLength(100);
-        });
-
-        modelBuilder.Entity<Test>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Test__3214EC0717F8FFC4");
-
-            entity.ToTable("Test");
-
-            entity.Property(e => e.Address).HasMaxLength(400);
-            entity.Property(e => e.Dob).HasColumnName("DOB");
-            entity.Property(e => e.Email)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.FirstName)
-                .HasMaxLength(150)
-                .IsUnicode(false)
-                .HasColumnName("First_Name");
-            entity.Property(e => e.Gender)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.Hobby)
-                .HasMaxLength(150)
-                .IsUnicode(false);
-            entity.Property(e => e.LastName)
-                .HasMaxLength(150)
-                .IsUnicode(false)
-                .HasColumnName("Last_Name");
-            entity.Property(e => e.Password).HasMaxLength(100);
-            entity.Property(e => e.Photo)
-                .HasMaxLength(150)
-                .IsUnicode(false);
         });
 
         modelBuilder.Entity<UserMaster>(entity =>

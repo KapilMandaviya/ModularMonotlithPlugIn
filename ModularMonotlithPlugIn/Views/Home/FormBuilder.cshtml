@@ -270,7 +270,16 @@
 
 												</td>
 
-												<td><input type="text" class="form-control field-length" value="@field.LengthValue" required readonly /></td>
+												<td>
+													<input type="@(field.LengthValue == "MAX" ? "text" : "number")"
+														   min="1"
+														   class="form-control field-length"
+														   value="@field.LengthValue"
+														   required
+														   readonly />
+												</td>
+
+												@* <td><input type="number" min="1" class="form-control field-length" value="@field.LengthValue" required readonly /></td> *@
 												<td><input type="text" class="form-control field-default" value="@field.DefaultValue" /></td>
 												<td class="text-center"><input type="checkbox" class="form-check-input field-required" @(field.Required ? "checked" : "") readonly /></td>
 												<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" @(field.Duplicate ? "checked" : "") /></td>
@@ -297,7 +306,28 @@
 											<td><input type="text" class="form-control field-label" required /></td>
 											<td>@Html.DropDownList("Datatype", (List<SelectListItem>)ViewBag.sqlDataType, "-- Select Data Type --", new { @class = "form-control data-type Datatype", required = "required" })</td>
 											<td>@Html.DropDownList("formUserControl", (List<SelectListItem>)ViewBag.formUserControl, "-- Select Form control --", new { @class = "form-control data-type formUserControl", required = "required" })</td>
-											<td><input type="text" class="form-control field-length" required /></td>
+
+											@* <td>
+												<div class="d-flex align-items-center">
+													<input type="number" class="form-control field-length" required min="1" />
+													<input type="checkbox" class="form-check-input field-max-length" title="Use as max length" />
+												</div>
+											</td> *@
+											<td>
+												<div class="d-flex align-items-center" style="gap: 10px; width: 100%;">
+													<div style="flex: 1;">
+														<input type="number" placeholder="Minimum 1 is required"
+															   class="form-control field-length" min="1" style="width: 100%;" />
+													</div>
+													<div class="form-check" id="maxLengthCheckbox" style="flex: 1; display: none;">
+														<input class="form-check-input field-max-length" type="checkbox" id="field-max-length" />
+														<label class="form-check-label field-max-length" for="isMaxLength">MAX</label>
+													</div>
+												</div>
+											</td>
+
+
+											@* <td><input type="number" class="form-control field-length" required min="1" /></td> *@
 											<td><input type="text" class="form-control field-default" /></td>
 											<td class="text-center"><input type="checkbox" class="form-check-input field-required" /></td>
 											<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" /></td>
@@ -397,7 +427,8 @@
 						OptionsJson: $row.find('.field-options').val() || "",
 						DataSourceTable: "",
 						DataSourceValueColumn: "",
-						DataSourceTextColumn: ""
+						IsMaxLength: $row.find('.field-max-length').is(':checked') // ✅ Boolean value
+
 					};
 
 					const dsRaw = $row.find('.field-datasource').val();
@@ -428,7 +459,18 @@
 						<td><input type="text" class="form-control field-label" required /></td>
 						<td><select class="form-control Datatype" required>${dataTypeOptions}</select></td>
 						<td><select class="form-control formUserControl" required>${formControlOptions}</select></td>
-						<td><input type="text" class="form-control field-length" required/></td>
+						<td>
+								<div class="d-flex align-items-center" style="gap: 10px; width: 100%;">
+								<div style="flex: 1;">
+									<input type="number" placeholder="Minimum 1 is required"
+											class="form-control field-length" min="1" style="width: 100%;" />
+								</div>
+								<div class="form-check" id="maxLengthCheckbox" style="flex: 1; display: none;">
+									<input class="form-check-input field-max-length" type="checkbox" id="field-max-length" />
+									<label class="form-check-label field-max-length" for="isMaxLength">MAX</label>
+								</div>
+							</div>
+						</td>
 						<td><input type="text" class="form-control field-default" /></td>
 						<td class="text-center"><input type="checkbox" class="form-check-input field-required" /></td>
 						<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" /></td>
@@ -442,7 +484,7 @@
 				`);
 
 				$fieldsBody.append(newRow);
-
+				handleMaxCheckboxVisibility($(this));
 				//newRow.find('.remove-fieldDynamic').on('click', handleRemoveField());
 				newRow.on('input change', updateFieldData);
 
@@ -560,6 +602,57 @@
 					});
 				}
 			});
+
+			$('#fieldsBody').on('change', '.Datatype', function () {
+				const $row = $(this).closest('tr');
+				handleMaxCheckboxVisibility($row);
+			});
+
+			$('#fieldsBody').on('change', '.field-max-length', function () {
+				const $row = $(this).closest('tr');
+				toggleFieldLengthInput($row);
+			});
+
+			// Initial setup for all rows
+			$('#fieldsBody tr').each(function () {
+				handleMaxCheckboxVisibility($(this));
+			});
+	 
+
+		function handleMaxCheckboxVisibility($row) {
+			const selected = $row.find('.Datatype').val()?.toLowerCase();
+			const typesWithMax = ['varchar', 'nvarchar', 'varbinary'];
+
+			const $checkboxContainer = $row.find('#maxLengthCheckbox');
+			const $checkbox = $row.find('.field-max-length');
+			const $input = $row.find('.field-length');
+
+			$checkbox.prop('checked', false);
+				$input.prop('disabled', false);
+
+			if (typesWithMax.includes(selected)) {
+				$checkboxContainer.show();
+				toggleFieldLengthInput($row); // Re-evaluate checkbox state
+			} else {
+				$checkboxContainer.hide();
+				$checkbox.prop('checked', false);
+				$input.prop('disabled', false);
+			}
+		}
+
+		function toggleFieldLengthInput($row) {
+			const $checkbox = $row.find('.field-max-length');
+			const $input = $row.find('.field-length');
+
+			if ($checkbox.is(':checked')) {
+			 
+				$input.prop('disabled', true);
+			} else {
+				 
+				$input.prop('disabled', false);
+			}
+		}
+
 		});
 	</script> 
 }

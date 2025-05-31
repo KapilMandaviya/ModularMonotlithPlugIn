@@ -61,7 +61,7 @@ namespace UserModule
                 return (0, "SubMenu name already exists.");
             }
 
-            _context.SubMenus.Add(new SubMenu { MenuId = menu.MenuId, Name = menu.SubMenuName, SortOrder = menu.SubMenuSortOrder });
+            _context.SubMenus.Add(new SubMenu { MenuId = menu.MenuId ?? 0, Name = menu.SubMenuName, SortOrder = menu.SubMenuSortOrder });
             int result = await _context.SaveChangesAsync();
             connection.Close(); // Dispose-like behavior
             return (result, "SubMenu added successfully!");

@@ -7,7 +7,7 @@ public partial class SubMenu
 {
     public int Id { get; set; }
 
-    public int? MenuId { get; set; }
+    public int MenuId { get; set; }
 
     public string Name { get; set; } = null!;
 

@@ -88,6 +88,8 @@ namespace UserContract
 
         Task<DynamicFormModel> getFormsWithFields(int? formId);
         (int result, string errorMessage) DeleteFormFields(int? fieldId);
+
+        Task<(List<string> Columns, List<Dictionary<string, string>> Rows)> GetFormData(string tableName);
     }
 
 
@@ -109,6 +111,8 @@ namespace UserContract
         public int UpdatedId { get; set; }
 
         public MenuDto MenuDto{ get; set; } = new(); // 👈 Important
+
+        
     }
 
     public class DynamicField
@@ -133,6 +137,8 @@ namespace UserContract
         public string DataSourceTable { get; set; }
         public string DataSourceValueColumn { get; set; }
         public string DataSourceTextColumn { get; set; }
+
+        public bool IsMaxLength { get; set; } = false; // ✅ New property
 
         [NotMapped]
         public List<SelectListItem> DynamicOptions { get; set; } = new();

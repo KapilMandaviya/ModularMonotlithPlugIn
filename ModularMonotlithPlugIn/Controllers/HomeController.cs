@@ -1,7 +1,9 @@
 ﻿using DataContextLibr.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.SqlServer.Server;
 using System.Text.Json;
 using UserContract;
@@ -344,6 +346,25 @@ namespace ModularMonotlithPlugIn.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetFormData(string tableName)
+        {
+            var dynamic = _provider.GetService<IDynamicForm>();
+            if (dynamic == null)
+            {
+                TempData["ToastrError"] = "Dynamic form module is not loaded.";
+                return Json("Module Not Loaded");
+                //return RedirectToAction("ViewFrmList");
+            }
+            var (columns, rows) = await dynamic.GetFormData(tableName);
+
+            return Json(new
+            {
+                columns = columns,
+                rows = rows
+            });
+        }
+        
     }
 
 }
