@@ -319,40 +319,88 @@ namespace DynamicFormBuilder
             if (!keyValuePairs.TryGetValue("TableName", out string tableName) || string.IsNullOrWhiteSpace(tableName))
                 throw new ArgumentException("TableName is missing in the form data.");
 
-            // Remove TableName so only field data remains
-            keyValuePairs.Remove("TableName");
-            keyValuePairs.Remove("FormName");
-            keyValuePairs.Remove("FormId");
 
-            if (keyValuePairs.Count == 0)
-                throw new ArgumentException("No form fields to save.");
-
-            // Add default/system columns
-            keyValuePairs["IsDelete"] = "0";
-            keyValuePairs["IsActive"] = "1";
-            keyValuePairs["CreatedBy"] = "System"; // Or use the logged-in user if available
-            keyValuePairs["CreatedDate"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            keyValuePairs["ModifiedBy"] = DBNull.Value?.ToString(); // Optional: null
-            keyValuePairs["UpdatedDate"] = DBNull.Value?.ToString(); // Optional: null
-
-            // Build SQL
-            var columnNames = string.Join(", ", keyValuePairs.Keys.Select(k => $"[{k}]"));
-            var parameterNames = string.Join(", ", keyValuePairs.Keys.Select(k => $"@{k}"));
-            var sql = $"INSERT INTO [{tableName}] ({columnNames}) VALUES ({parameterNames})";
-            var connectionString = _context.Database.GetDbConnection().ConnectionString;
-
-            // Execute using ADO.NET
-            using (var conn = new SqlConnection(connectionString))
-            using (var cmd = new SqlCommand(sql, conn))
+            if (string.IsNullOrEmpty(keyValuePairs["Id"]) || keyValuePairs["Id"] == "0")
             {
-                foreach (var kvp in keyValuePairs)
-                {
-                    cmd.Parameters.AddWithValue("@" + kvp.Key, kvp.Value ?? (object)DBNull.Value);
-                }
+                // Remove TableName so only field data remains
+                keyValuePairs.Remove("Id");
+                keyValuePairs.Remove("TableName");
+                keyValuePairs.Remove("FormName");
+                keyValuePairs.Remove("FormId");
 
-                conn.OpenAsync();
-                int rowsAffected = cmd.ExecuteNonQuery();
-                return rowsAffected;
+                if (keyValuePairs.Count == 0)
+                    throw new ArgumentException("No form fields to save.");
+
+                // Add default/system columns
+                keyValuePairs["IsDelete"] = "0";
+                keyValuePairs["IsActive"] = "1";
+                keyValuePairs["CreatedBy"] = "System"; // Or use the logged-in user if available
+                keyValuePairs["CreatedDate"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                keyValuePairs["ModifiedBy"] = DBNull.Value?.ToString(); // Optional: null
+                keyValuePairs["UpdatedDate"] = DBNull.Value?.ToString(); // Optional: null
+
+                // Build SQL
+                var columnNames = string.Join(", ", keyValuePairs.Keys.Select(k => $"[{k}]"));
+                var parameterNames = string.Join(", ", keyValuePairs.Keys.Select(k => $"@{k}"));
+                var sql = $"INSERT INTO [{tableName}] ({columnNames}) VALUES ({parameterNames})";
+                var connectionString = _context.Database.GetDbConnection().ConnectionString;
+
+                // Execute using ADO.NET
+                using (var conn = new SqlConnection(connectionString))
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    foreach (var kvp in keyValuePairs)
+                    {
+                        cmd.Parameters.AddWithValue("@" + kvp.Key, kvp.Value ?? (object)DBNull.Value);
+                    }
+
+                    conn.OpenAsync();
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    return rowsAffected;
+                }
+            }
+            else {
+
+                keyValuePairs.Remove("TableName");
+                keyValuePairs.Remove("FormName");
+                keyValuePairs.Remove("FormId");
+
+                if (keyValuePairs.Count == 0)
+                    throw new ArgumentException("No form fields to save.");
+
+                // Add default/system columns
+                keyValuePairs["IsDelete"] = "0";
+                keyValuePairs["IsActive"] = "1";
+                //keyValuePairs["CreatedBy"] = "System"; // Or use the logged-in user if available
+                //keyValuePairs["CreatedDate"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                keyValuePairs["ModifiedBy"] = "System"; // Optional: null
+                keyValuePairs["UpdatedDate"] = DateTime.Now.Date.ToString(); // Optional: null
+
+
+                var keyColumn = "Id";
+                if (!keyValuePairs.ContainsKey(keyColumn))
+                    throw new ArgumentException("Missing key column for update.");
+
+                var setClauses = string.Join(", ", keyValuePairs.Keys
+                    .Where(k => k != keyColumn)
+                    .Select(k => $"[{k}] = @{k}"));
+
+                var sql = $"UPDATE [{tableName}] SET {setClauses} WHERE [{keyColumn}] = @{keyColumn}";
+
+                var connectionString = _context.Database.GetDbConnection().ConnectionString;
+
+                using (var conn = new SqlConnection(connectionString))
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    foreach (var kvp in keyValuePairs)
+                    {
+                        cmd.Parameters.AddWithValue("@" + kvp.Key, kvp.Value ?? (object)DBNull.Value);
+                    }
+
+                      conn.OpenAsync();
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    return rowsAffected;
+                }
             }
 
         }
@@ -736,7 +784,7 @@ namespace DynamicFormBuilder
                 var rows = new List<Dictionary<string, string>>();
 
                 var existingTable = await _context.Database
-    .SqlQueryRaw<string>( "SELECT TABLE_NAME AS [Value] FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @tableName", new SqlParameter("@tableName", tableName) ).FirstOrDefaultAsync();
+    .SqlQueryRaw<string>("SELECT TABLE_NAME AS [Value] FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @tableName", new SqlParameter("@tableName", tableName)).FirstOrDefaultAsync();
 
                 //var existingTable = await _context.Database
                 //                     .SqlQueryRaw<string>($@" SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{tableName}' ").FirstOrDefaultAsync();
@@ -769,15 +817,44 @@ namespace DynamicFormBuilder
                 }
 
                 // Rows
+                //while (await reader.ReadAsync())
+                //{
+                //    var row = new Dictionary<string, string>();
+                //    foreach (var col in columns)
+                //    {
+                //        row[col] = reader[col]?.ToString();
+                //    }
+                //    rows.Add(row);
+                //}
                 while (await reader.ReadAsync())
                 {
                     var row = new Dictionary<string, string>();
                     foreach (var col in columns)
                     {
-                        row[col] = reader[col]?.ToString();
+                        object value = reader[col];
+                        string formattedValue;
+
+                        if (value == DBNull.Value)
+                        {
+                            formattedValue = null;
+                        }
+                        else if (value is DateTime dt)
+                        {
+                            formattedValue = dt.ToString("yyyy-MM-dd"); // ✅ format date
+                        }
+                        else
+                        {
+                            formattedValue = value.ToString();
+                        }
+
+                        row[col] = formattedValue;
                     }
+
                     rows.Add(row);
                 }
+
+
+
 
                 return (columns, rows);
             }
@@ -809,7 +886,7 @@ namespace DynamicFormBuilder
 
                 {
                     string sql = $"UPDATE [{tableName}] SET IsDelete = 1,IsActive = 0  WHERE Id = @id";
-                     
+
                     var param = new SqlParameter("@id", id);
                     int affected = await _context.Database.ExecuteSqlRawAsync(sql, param);
 
@@ -825,7 +902,101 @@ namespace DynamicFormBuilder
                 throw;
             }
             // Example using Entity Framework with raw SQL
-           
+
+        }
+
+        public async Task<List<DynamicField>> GetFormFields(string tableName)
+        {
+            //var fields = await (from f in _context.Forms
+            //                    join df in _context.FormFields on f.Id equals df.FormId
+            //                    where f.TableName == tableName
+            //                    select new DynamicField
+            //                    {
+            //                        FieldName = df.FieldName,
+            //                        FieldType = df.FieldType
+            //                    }).ToListAsync();
+
+            var fields = await (from f in _context.Forms
+                                join df in _context.FormFields on f.Id equals df.FormId
+                                where f.TableName == tableName
+                                select new DynamicField
+                                {
+                                    
+                                    FieldName = df.FieldName,
+                                    FieldType = df.FieldType
+                                }).ToListAsync();
+            var IdRow = new DynamicField()
+            {
+                FieldName = "Id",
+                FieldType= "hidden"
+
+            };
+            fields.Add(IdRow);
+            return fields;
+        }
+
+        public async Task<Dictionary<string, object>> FetchRecordFromDatabase(string tableName, int id)
+        {
+            try
+            {
+                var result = new Dictionary<string, object>();
+
+                var sql = $"SELECT * FROM [{tableName}] WHERE Id = @id";
+
+                var connection = _context.Database.GetDbConnection();
+
+                if (connection.State != System.Data.ConnectionState.Open)
+                {
+                    connection.Open(); // Dispose-like behavior
+                }
+
+                //using var cmd = new SqlCommand(sql, connection.ConnectionString);/
+                var connectionString = _context.Database.GetDbConnection().ConnectionString;
+
+                using (var conn = new SqlConnection(connectionString))
+                {
+                    await conn.OpenAsync(); // ✅ You must open the connection
+
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+
+                        using var reader = await cmd.ExecuteReaderAsync();
+                        if (await reader.ReadAsync())
+                        {
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                object value;
+                                var columnName = reader.GetName(i);
+                                //var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                if (reader.IsDBNull(i))
+                                {
+                                    value = null;
+                                }
+                                else if (reader.GetFieldType(i) == typeof(DateTime))
+                                {
+                                    var dt = reader.GetDateTime(i);
+                                    value = dt.ToString("yyyy-MM-dd"); // Only the date part
+                                }
+                                else
+                                {
+                                    value = reader.GetValue(i);
+                                }
+
+                                result[columnName] = value;
+                            }
+                        }
+                    }
+                }
+
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
         }
     }
 

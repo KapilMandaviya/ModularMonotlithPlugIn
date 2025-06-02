@@ -91,6 +91,8 @@ namespace UserContract
         Task<(int result, string errorMessage)> DeleteDynamicFormTableDataRow(int id, string tableName);
 
         Task<(List<string> Columns, List<Dictionary<string, string>> Rows)> GetFormData(string tableName);
+        Task<List<DynamicField>> GetFormFields(string tableName );
+        Task<Dictionary<string, object>> FetchRecordFromDatabase(string tableName, int id);
     }
 
 
@@ -143,6 +145,8 @@ namespace UserContract
 
         [NotMapped]
         public List<SelectListItem> DynamicOptions { get; set; } = new();
+
+        public string? VALUE { get; set; }
     }
 
      

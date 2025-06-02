@@ -190,6 +190,61 @@
 				}
 			});
 
+		$('#dynamicTable').on('click', '.edit-btn', function () {
+			const id = $(this).data('id');
+			const tableName = '@Model.TableName';
+
+			$.ajax({
+				url: '/Home/GetFormDataRecord',  // Make sure your controller has this endpoint
+				type: 'GET',
+				data: { id: id, tableName: tableName },
+				success: function (response) {
+					console.log(response);
+					if (response.success && response.data) {
+						$('#recordId').val(response.data[0]?.formId || 0); // optional chaining, in case it's empty
+
+						for (var i = 0; i < response.data.length; i++) {
+				var field = response.data[i];
+				var name = field.fieldName;
+				var type = field.fieldType;
+				var value = field.value;
+
+					if (type === "DropDown") {
+						$(`select[name="${name}"]`).val(value);
+					}
+					else if(type=="hidden")
+					{
+						$(`input[name="${name}"]`).val(value);
+					}
+					else if (type === "RadioButton") {
+						$(`input[name="${name}"][value="${value}"]`).prop('checked', true);
+					} else if (type === "CheckBox") {
+						var vals = value ? value.split(',') : [];
+						$(`input[name="${name}"]`).each(function () {
+							$(this).prop('checked', vals.includes($(this).val()));
+						});
+					} else if (type === "TextArea") {
+						$(`textarea[name="${name}"]`).val(value);
+					} else if (type === "DatePicker") {
+						$(`input[name="${name}"]`).val(value ? value.substring(0, 10) : '');
+					} else {
+						$(`input[name="${name}"]`).val(value);
+					}
+				}
+						alert($('#recordId').val());
+					}
+
+					else {
+						toastr.error('Failed to load data for editing.');
+					}
+				},
+				error: function () {
+					toastr.error('Error occurred while fetching data.');
+				}
+			});
+		});
+
+
 		}); 
 
 	</script>

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.SqlServer.Server;
 using System.Text.Json;
+using System.Threading.Tasks;
 using UserContract;
 
 
@@ -396,6 +397,43 @@ namespace ModularMonotlithPlugIn.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetFormDataRecord(string tableName, int id)
+        {
+            // Replace with your actual data fetch logic:
+            var dynamic = _provider.GetService<IDynamicForm>();
+            if (dynamic == null)
+            {
+                return Json(new { success = false, message = "Dynamic form module is not loaded." });
+            }
+            // 1) Get list of fields (name + type) for the form (from DB or model)
+            var fields =await dynamic.GetFormFields(tableName);
+
+            // 2) Get saved data values for record id (from DB)
+            var savedData = await dynamic.FetchRecordFromDatabase(tableName, id);
+
+            if (fields == null || savedData == null)
+                return Json(new { success = false, message = "Record or fields not found" });
+
+            // 3) Compose a list with field name, type, and value
+            var result = new List<DynamicField>();
+
+            foreach (var field in fields)
+            {
+                savedData.TryGetValue(field.FieldName, out var val);
+                result.Add(new DynamicField
+                {
+                    FieldName = field.FieldName,
+                    FieldType = field.FieldType,
+                    VALUE = val != null ? val.ToString() : string.Empty // Handle nulls safely
+                });
+            }
+
+            return Json(new { success = true, data = result });
+        }
+
+
+      
 
     }
 
