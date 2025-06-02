@@ -12,6 +12,8 @@
 	<input type="hidden" name="FormName" value="@Model.FormName" />
 	<input type="hidden" name="TableName" value="@Model.TableName" />
 	<input type="hidden" name="FormId" value="@Model.Id" />
+	<input type="hidden" name="Id" id="recordId" value="" />
+
 
 	<div class="container">
 		<div class="row">
@@ -117,8 +119,10 @@
 		}
 		});
 
-				$(document).ready(function () {
+		 
+		function loadTable() {
 			const tableName = '@Model.TableName';
+
 			$.ajax({
 				url: '/Home/GetFormData',
 				type: 'GET',
@@ -129,30 +133,22 @@
 						return;
 					}
 
-					// Base columns from response
-					const columns = response.columns.map(col => ({
-						title: col,
-						data: col
-					}));
-
-					// Add Actions column
+					const columns = response.columns.map(col => ({ title: col, data: col }));
 					columns.push({
-						title: "Actions",
+						title: 'Actions',
 						data: null,
 						orderable: false,
-						render: function (data, type, row, meta) {
+						render: function (data, type, row) {
 							return `
 								<button class="btn btn-sm btn-primary me-1 edit-btn" data-id="${row.Id}">
 									<i class="fa fa-edit"></i> Edit
 								</button>
-								<button class="btn btn-sm btn-danger delete-btn" data-id="${row.Id}">
+								<button class="btn btn-sm btn-danger delete-btn" data-id="${row.Id}" data-tablename="${tableName}">
 									<i class="fa fa-trash"></i> Delete
-								</button>
-							`;
+								</button>`;
 						}
 					});
 
-					// Initialize DataTable
 					$('#dynamicTable').DataTable({
 						data: response.rows,
 						columns: columns,
@@ -165,53 +161,36 @@
 					toastr.error('Failed to load submitted data.');
 				}
 			});
-		});
+		}
 
+		$(document).ready(function () {
+			loadTable();
 
-		// $(document).ready(function () {
-		// 	const tableName = '@Model.TableName';
-		// 	$.ajax({
-		// 		url: '/Home/GetFormData',
-		// 		type: 'GET',
-		// 		data: { tableName: tableName },
-		// 		success: function (response) {
-		// 			if (!response.columns || !response.rows) {
-		// 				$('#dynamicTable').hide();
-		// 				return;
-		// 			}
+			$('#dynamicTable').on('click', '.delete-btn', function () {
+				const id = $(this).data('id');
+				const tableName = $(this).data('tablename');
 
-		// 			// Construct columns array for DataTables
-		// 			const columns = response.columns.map(col => ({ title: col, data: col }));
+				if (confirm('Are you sure you want to delete this record?')) {
+					$.ajax({
+						url: '/Home/DeleteDynamicForm',
+						type: 'POST',
+						data: { id: id, tableName: tableName },
+						success: function (response) {
+							if (response.success) {
+								toastr.success(response.message);
+								loadTable(); // Reload table after delete
+							} else {
+								toastr.error(response.message);
+							}
+						},
+						error: function () {
+							toastr.error('Failed to delete record.');
+						}
+					});
+				}
+			});
 
-		// 			// Construct rows as array of objects
-		// 			const data = response.rows;
-
-		// 			// Initialize DataTable
-		// 			$('#dynamicTable').DataTable({
-		// 				data: data,
-		// 				columns: columns,
-		// 				destroy: true, // Allow re-initialization
-		// 				responsive: true,
-		// 				pageLength: 10,
-		// 				render: function (data, type, row, meta) {
-		// 					return `
-		// 						<button class="btn btn-sm btn-primary me-1 edit-btn" data-id="${row.Id}">
-		// 							<i class="fa fa-edit"></i> Edit
-		// 						</button>
-		// 						<button class="btn btn-sm btn-danger delete-btn" data-id="${row.Id}">
-		// 							<i class="fa fa-trash"></i> Delete
-		// 						</button>
-		// 					`;
-		// 				}
-		// 			});
-		// 		},
-		// 		error: function () {
-		// 			toastr.error('Failed to load submitted data.');
-		// 		}
-		// 	});
-		// });
-
-
+		}); 
 
 	</script>
 }

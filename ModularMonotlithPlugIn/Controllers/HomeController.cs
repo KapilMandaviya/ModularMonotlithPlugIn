@@ -364,7 +364,39 @@ namespace ModularMonotlithPlugIn.Controllers
                 rows = rows
             });
         }
-        
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteDynamicForm(int id, string tableName)
+        {
+            if (string.IsNullOrEmpty(tableName))
+            {
+                return BadRequest("Table name is required.");
+            }
+
+            try
+            {
+                var dynamic = _provider.GetService<IDynamicForm>();
+                if (dynamic == null)
+                {
+                    return Json(new { success = false, message = "Dynamic form module is not loaded." });
+                }
+
+                var deleteRow = await dynamic.DeleteDynamicFormTableDataRow(id, tableName);
+
+                return Json(new
+                {
+                    success = deleteRow.result == 1,
+                    message = deleteRow.errorMessage
+                });
+            }
+            catch (Exception ex)
+            {
+                // Log exception here as needed
+                return Json(new { success = false, message = "Internal server error occurred." });
+            }
+        }
+
+
     }
 
 }

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SqlServer.Server;
 using System.Runtime.CompilerServices;
 using UserContract;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace DynamicFormBuilder
 {
@@ -114,18 +115,35 @@ namespace DynamicFormBuilder
                 var fieldsSql = form.Fields.Select(f =>
                 {
                     string type = f.DataType.ToUpper();
-                    ///string length = (type == "VARCHAR" || type == "NVARCHAR" || type== "VARBINARY") && f.IsMaxLength ? "MAX" : f.LengthValue ;
-                    //string length = (type == "VARCHAR" || type == "NVARCHAR") && int.Parse(f.LengthValue) != null ? $"({f.LengthValue})" : "";
                     string length = (type == "VARCHAR" || type == "NVARCHAR" || type == "VARBINARY")
                         ? (f.IsMaxLength ? "(MAX)" : $"({f.LengthValue})") : "";
 
                     string nullable = f.Required ? "NOT NULL" : "NULL";
                     return $"{f.FieldName} {type}{length} {nullable}";
-                });
+                }).ToList();
+
+                // Add default system columns
+                var defaultColumns = new List<string>
+                {
+                    "IsDelete BIT NOT NULL DEFAULT 0",
+                    "IsActive BIT NOT NULL DEFAULT 1",
+                    "CreatedBy NVARCHAR(100) NULL",
+                    "ModifiedBy NVARCHAR(100) NULL",
+                    "CreatedDate DATETIME NULL",
+                    "UpdatedDate DATETIME NULL"
+                };
+
+                // Combine fields
+                fieldsSql.AddRange(defaultColumns);
+
 
                 var sql = "";
 
-                if (tableExists == false)
+                //if (tableExists == false)
+                //{
+                //    sql = $"CREATE TABLE {form.TableName} (Id INT PRIMARY KEY IDENTITY(1,1), {string.Join(", ", fieldsSql)})";
+                //}
+                if (!tableExists)
                 {
                     sql = $"CREATE TABLE {form.TableName} (Id INT PRIMARY KEY IDENTITY(1,1), {string.Join(", ", fieldsSql)})";
                 }
@@ -308,6 +326,14 @@ namespace DynamicFormBuilder
 
             if (keyValuePairs.Count == 0)
                 throw new ArgumentException("No form fields to save.");
+
+            // Add default/system columns
+            keyValuePairs["IsDelete"] = "0";
+            keyValuePairs["IsActive"] = "1";
+            keyValuePairs["CreatedBy"] = "System"; // Or use the logged-in user if available
+            keyValuePairs["CreatedDate"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            keyValuePairs["ModifiedBy"] = DBNull.Value?.ToString(); // Optional: null
+            keyValuePairs["UpdatedDate"] = DBNull.Value?.ToString(); // Optional: null
 
             // Build SQL
             var columnNames = string.Join(", ", keyValuePairs.Keys.Select(k => $"[{k}]"));
@@ -635,6 +661,67 @@ namespace DynamicFormBuilder
             }
         }
 
+        //public async Task<(List<string> Columns, List<Dictionary<string, string>> Rows)> GetFormData(string tableName)
+        //{
+        //    try
+        //    {
+        //        var connection = _context.Database.GetDbConnection();
+
+        //        if (connection.State != System.Data.ConnectionState.Open)
+        //        {
+        //            connection.Open(); // Dispose-like behavior
+        //        }
+        //        var columns = new List<string>();
+        //        var rows = new List<Dictionary<string, string>>();
+
+
+        //        //var existingTable = await _context.Database
+        //        //             .SqlQueryRaw<string>($@" SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES 
+        //        //            WHERE TABLE_NAME = '{tableName}'
+        //        //        ").FirstOrDefaultAsync();
+        //        //if (existingTable == null)
+        //        //    throw new Exception("table not found");
+
+
+        //        //    if (!existingTable.Contains(tableName))
+        //        //        throw new Exception("Invalid table name.");
+
+
+
+        //        await using var conn = new SqlConnection(connection.ConnectionString);
+        //        await conn.OpenAsync();
+
+        //        var query = $"SELECT * FROM [{tableName}] where IsActive = 1";  // Bracket-safe for table names
+        //        using var cmd = new SqlCommand(query, conn);
+        //        using var reader = await cmd.ExecuteReaderAsync();
+
+        //        // Columns
+        //        for (int i = 0; i < reader.FieldCount; i++)
+        //        {
+        //            columns.Add(reader.GetName(i));
+        //        }
+
+        //        // Rows
+        //        while (await reader.ReadAsync())
+        //        {
+        //            var row = new Dictionary<string, string>();
+        //            foreach (var col in columns)
+        //            {
+        //                row[col] = reader[col]?.ToString();
+        //            }
+        //            rows.Add(row);
+        //        }
+
+        //        return (columns, rows);
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+
+        //        throw;
+        //    }
+        //}
+
         public async Task<(List<string> Columns, List<Dictionary<string, string>> Rows)> GetFormData(string tableName)
         {
             try
@@ -648,31 +735,37 @@ namespace DynamicFormBuilder
                 var columns = new List<string>();
                 var rows = new List<Dictionary<string, string>>();
 
+                var existingTable = await _context.Database
+    .SqlQueryRaw<string>( "SELECT TABLE_NAME AS [Value] FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @tableName", new SqlParameter("@tableName", tableName) ).FirstOrDefaultAsync();
 
                 //var existingTable = await _context.Database
-                //             .SqlQueryRaw<string>($@" SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES 
-                //            WHERE TABLE_NAME = '{tableName}'
-                //        ").FirstOrDefaultAsync();
-                //if (existingTable == null)
-                //    throw new Exception("table not found");
+                //                     .SqlQueryRaw<string>($@" SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{tableName}' ").FirstOrDefaultAsync();
+                if (existingTable == null)
+                    throw new Exception("table not found");
 
 
-                //    if (!existingTable.Contains(tableName))
-                //        throw new Exception("Invalid table name.");
-
-
+                if (!existingTable.Contains(tableName))
+                    throw new Exception("Invalid table name.");
 
                 await using var conn = new SqlConnection(connection.ConnectionString);
                 await conn.OpenAsync();
-
-                var query = $"SELECT * FROM [{tableName}]";  // Bracket-safe for table names
+                var query = $"SELECT * FROM [{tableName}] where IsActive = 1";
+                // Bracket-safe for table names
                 using var cmd = new SqlCommand(query, conn);
                 using var reader = await cmd.ExecuteReaderAsync();
 
+                var defaultColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                 "IsDelete", "IsActive", "CreatedBy", "ModifiedBy", "CreatedDate", "UpdatedDate"
+            };
                 // Columns
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
-                    columns.Add(reader.GetName(i));
+                    string columnName = reader.GetName(i);
+                    if (!defaultColumns.Contains(columnName))
+                    {
+                        columns.Add(columnName);
+                    }
                 }
 
                 // Rows
@@ -687,13 +780,52 @@ namespace DynamicFormBuilder
                 }
 
                 return (columns, rows);
-
             }
             catch (Exception ex)
             {
 
                 throw;
             }
+
+        }
+
+
+        public async Task<(int result, string errorMessage)> DeleteDynamicFormTableDataRow(int id, string tableName)
+        {
+            try
+            {
+                if (tableName == "")
+                    return (0, "Table name cannot be empty.");
+                if (id == 0 || id <= 0)
+                    return (0, "Invalid ID provided.");
+
+                //using (var context = new ModularContext())
+                //{
+                //    string sql = $"DELETE FROM [{tableName}] WHERE Id = {id}";
+                //    context.Database.ExecuteSqlRaw(sql);
+
+                //    return (1, "Row deleted successfully.");
+                //}
+
+                {
+                    string sql = $"UPDATE [{tableName}] SET IsDelete = 1,IsActive = 0  WHERE Id = @id";
+                     
+                    var param = new SqlParameter("@id", id);
+                    int affected = await _context.Database.ExecuteSqlRawAsync(sql, param);
+
+                    if (affected == 0)
+                        return (0, "No row found or already deleted.");
+
+                    return (1, "Row marked as deleted successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+            // Example using Entity Framework with raw SQL
+           
         }
     }
 

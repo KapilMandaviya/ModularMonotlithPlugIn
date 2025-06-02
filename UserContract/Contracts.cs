@@ -88,6 +88,7 @@ namespace UserContract
 
         Task<DynamicFormModel> getFormsWithFields(int? formId);
         (int result, string errorMessage) DeleteFormFields(int? fieldId);
+        Task<(int result, string errorMessage)> DeleteDynamicFormTableDataRow(int id, string tableName);
 
         Task<(List<string> Columns, List<Dictionary<string, string>> Rows)> GetFormData(string tableName);
     }
