@@ -59,6 +59,43 @@ namespace DynamicFormBuilder
                 }
 
 
+                // Step 2: Check for duplicate field names within the incoming list (for new fields only)
+                var duplicateFields = form.Fields
+                    .Where(f => f.IsNewField==true)
+                    .GroupBy(f => f.FieldName.ToLower())
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+
+                // Step 3: If duplicates found, return message or throw exception
+                if (duplicateFields.Any())
+                {
+                    string duplicateFieldsList = string.Join(", ", duplicateFields);
+                    return (0, $"$\"Duplicate field name(s) found in form: {duplicateFieldsList}");
+                }
+
+                // Step 2: Check for duplicate field names within the incoming list (for new fields only)
+                var duplicateLabel = form.Fields
+                    .Where(f => f.IsNewField == true)
+                    .GroupBy(f => f.Label.ToLower())
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+
+                // Step 3: If duplicates found, return message or throw exception
+                if (duplicateFields.Any())
+                {
+                    string duplicateFieldsList = string.Join(", ", duplicateFields);
+                    return (0, $"$\"Duplicate field name(s) found in form: {duplicateFieldsList}");
+                }
+                // Step 3: If duplicates found, return message or throw exception
+                if (duplicateLabel.Any())
+                {
+                    string duplicateLabelList = string.Join(", ", duplicateLabel);
+                    return (0, $"$\"Duplicate label name(s) found in form: {duplicateLabelList}");
+                }
 
                 var formdata = new Form
                 {
@@ -313,12 +350,29 @@ namespace DynamicFormBuilder
             return options;
         }
 
-        public int saveDynamicFormDetailRepo(Dictionary<string, string> keyValuePairs)
+        public async Task<(int result, string errorMessage)> saveDynamicFormDetailRepo(Dictionary<string, string> keyValuePairs)
         {
 
             if (!keyValuePairs.TryGetValue("TableName", out string tableName) || string.IsNullOrWhiteSpace(tableName))
-                throw new ArgumentException("TableName is missing in the form data.");
+                return(0,"TableName is missing in the form data.");
 
+            string idValue = keyValuePairs.ContainsKey("Id") ? keyValuePairs["Id"] : "0";
+
+            // Fetch the columns and duplicate flags from your metadata table
+            var formColumns = GetFormColumnsFromDb(Convert.ToInt32(keyValuePairs["FormId"])); // or pass the formId if you have it separately
+
+            // Check for duplicates in the database before insert/update
+            foreach (var column in formColumns)
+            {
+                if (keyValuePairs.ContainsKey(column.ColumnName) && column.IsDuplicateAllowed == true)
+                {
+                    string columnValue = keyValuePairs[column.ColumnName];
+                    if (IsDuplicateValueExists(tableName, column.ColumnName, columnValue, idValue))
+                    {
+                        return(0,$"Duplicate value found for column '{column.ColumnName}': '{columnValue}'");
+                    }
+                }
+            }
 
             if (string.IsNullOrEmpty(keyValuePairs["Id"]) || keyValuePairs["Id"] == "0")
             {
@@ -329,7 +383,7 @@ namespace DynamicFormBuilder
                 keyValuePairs.Remove("FormId");
 
                 if (keyValuePairs.Count == 0)
-                    throw new ArgumentException("No form fields to save.");
+                    return (0, "No form field to save");
 
                 // Add default/system columns
                 keyValuePairs["IsDelete"] = "0";
@@ -356,7 +410,7 @@ namespace DynamicFormBuilder
 
                     conn.OpenAsync();
                     int rowsAffected = cmd.ExecuteNonQuery();
-                    return rowsAffected;
+                    return (1, "Insert data successfully");
                 }
             }
             else {
@@ -366,7 +420,7 @@ namespace DynamicFormBuilder
                 keyValuePairs.Remove("FormId");
 
                 if (keyValuePairs.Count == 0)
-                    throw new ArgumentException("No form fields to save.");
+                    return(0,"No form fields to save.");
 
                 // Add default/system columns
                 keyValuePairs["IsDelete"] = "0";
@@ -379,7 +433,7 @@ namespace DynamicFormBuilder
 
                 var keyColumn = "Id";
                 if (!keyValuePairs.ContainsKey(keyColumn))
-                    throw new ArgumentException("Missing key column for update.");
+                    return (0, "Missing key column for update.");
 
                 var setClauses = string.Join(", ", keyValuePairs.Keys
                     .Where(k => k != keyColumn)
@@ -399,10 +453,41 @@ namespace DynamicFormBuilder
 
                       conn.OpenAsync();
                     int rowsAffected = cmd.ExecuteNonQuery();
-                    return rowsAffected;
+                    return (1, "Record updated successfully.");
                 }
             }
 
+        }
+
+        public List<(string ColumnName, bool IsDuplicateAllowed)> GetFormColumnsFromDb(int formId)
+        {
+            return _context.FormFields
+                .Where(f => f.FormId == formId)
+                .Select(f => new { f.FieldName, f.Duplicate })
+                .AsEnumerable()
+                .Select(f => (f.FieldName, f.Duplicate == true))
+                .ToList();
+        }
+
+        private bool IsDuplicateValueExists(string tableName, string columnName, string columnValue, string idValue)
+        {
+            var sql = $"SELECT COUNT(1) FROM [{tableName}] WHERE [{columnName}] = @Value and IsDelete=0";
+
+            // If updating, exclude the current record based on Id
+            if (!string.IsNullOrEmpty(idValue) && idValue != "0")
+                sql += " AND [Id] <> @Id";
+
+            using (var conn = new SqlConnection(_context.Database.GetDbConnection().ConnectionString))
+            using (var cmd = new SqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("@Value", columnValue);
+                if (!string.IsNullOrEmpty(idValue) && idValue != "0")
+                    cmd.Parameters.AddWithValue("@Id", idValue);
+
+                conn.Open();
+                int count = (int)cmd.ExecuteScalar();
+                return count > 0;
+            }
         }
 
         public async Task<List<DynamicFormModel>> getAllFormList()
@@ -544,6 +629,60 @@ namespace DynamicFormBuilder
                     return (0, "This Menu and Submenu already used with different Form");
                 }
 
+
+                // Step 1: Get existing field names from DB for this FormName and TableName
+                var existingFieldNames = await (
+                    from f in _context.Forms
+                    join ff in _context.FormFields on f.Id equals ff.FormId
+                    where f.FormName == form.FormName && f.TableName == form.TableName
+                    select ff.FieldName.ToLower()
+                ).ToListAsync();
+
+                // Step 2: Find duplicates among incoming fields where isNewField is true
+                var duplicateFields = form.Fields
+                    .Where(dto => dto.IsNewField==true && existingFieldNames.Contains(dto.FieldName.ToLower()))
+                    .Select(dto => dto.FieldName.ToLower())
+                    .Distinct()
+                    .ToList();
+
+
+                ///////////////////////////////////////////////////////////////////////////////
+                ///// Step 2: Check for duplicate field names within the incoming list (for new fields only)
+                var NewduplicateLabel = form.Fields
+                    .Where(f => f.IsNewField == true)
+                    .GroupBy(f => f.Label.ToLower())
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key)
+                    .ToList();
+
+                // Step 3: If duplicates found, return message or throw exception
+                if (NewduplicateLabel.Any())
+                {
+                    string NewduplicateLabelList = string.Join(", ", NewduplicateLabel);
+                    return (0, $"$\"Duplicate new label name(s) found in form: {NewduplicateLabelList}");
+                }
+
+                var ExistingduplicateLabel = form.Fields
+                    //.Where(f => f.IsNewField == false || f.IsNewField==true)
+                   .GroupBy(f => f.Label.ToLower())
+                   .Where(g => g.Count() > 1)
+                   .Select(g => g.Key)
+                   .ToList();
+
+
+                // Step 3: If duplicates found, return message or throw exception
+                if (duplicateFields.Any())
+                {
+                    string duplicateFieldsList = string.Join(", ", duplicateFields);
+                    return (0, $"$\"Duplicate field name(s) found in form: {duplicateFieldsList}");
+                }
+
+                if (ExistingduplicateLabel.Any())
+                {
+                    string duplicateLabelList = string.Join(", ", ExistingduplicateLabel);
+                    return (0, $"$\"Existing Duplicate label name(s) found in form: {duplicateLabelList}");
+                }
+
                 // 
                 var tableExists = await _context.Forms.FirstOrDefaultAsync(x => x.TableName.ToLower() == form.TableName.ToLower());
                 if (tableExists != null)
@@ -580,21 +719,21 @@ namespace DynamicFormBuilder
                     if (existingField != null)
                     {
                         // Update existing field
-                        existingField.FieldName = dto.FieldName;
+                        //existingField.FieldName = dto.FieldName;
                         existingField.CssClass = dto.CssClass;
-                        existingField.DataType = dto.DataType;
+                        //existingField.DataType = dto.DataType;
                         existingField.DefaultValue = dto.DefaultValue;
                         existingField.Duplicate = dto.Duplicate;
-                        existingField.FieldType = dto.FieldType;
+                        //existingField.FieldType = dto.FieldType;
                         existingField.Label = dto.Label;
-                        existingField.LengthValue = dto.IsMaxLength ? "MAX" : dto.LengthValue;
+                       // existingField.LengthValue = dto.IsMaxLength ? "MAX" : dto.LengthValue;
                         existingField.Position = dto.Position;
                         existingField.Required = dto.Required;
                         existingField.Tooltip = dto.Tooltip;
-                        existingField.OptionsJson = dto.OptionsJson;
-                        existingField.OptionTableName = dto.DataSourceTable;
-                        existingField.OptionTextField = dto.DataSourceTextColumn;
-                        existingField.OptionValueField = dto.DataSourceValueColumn;
+                       // existingField.OptionsJson = dto.OptionsJson;
+                       // existingField.OptionTableName = dto.DataSourceTable;
+                       // existingField.OptionTextField = dto.DataSourceTextColumn;
+                       // existingField.OptionValueField = dto.DataSourceValueColumn;
                     }
                     else
                     {
@@ -792,7 +931,7 @@ namespace DynamicFormBuilder
                     throw new Exception("table not found");
 
 
-                if (!existingTable.Contains(tableName))
+                if (!existingTable.Equals(tableName))
                     throw new Exception("Invalid table name.");
 
                 await using var conn = new SqlConnection(connection.ConnectionString);
@@ -998,6 +1137,8 @@ namespace DynamicFormBuilder
                 throw;
             }
         }
+
+
     }
 
 }

@@ -157,12 +157,13 @@ namespace ModularMonotlithPlugIn.Controllers
                 Text = x.SubMenuName,
                 Value = x.SubMenuId.ToString()
             }).ToList();
-
+            
             return View(formFields);
         }
         [HttpPost]
-        public async Task<IActionResult> FormBuilder(string FormMode,DynamicFormModel model)
+        public async Task<IActionResult> FormBuilder([FromBody]DynamicFormModel model)
         {
+            
             await GetSqlDataTypeWithField();
             await getMenuSubMenuDropdown();
             if (!string.IsNullOrEmpty(model.FieldsJson))
@@ -184,28 +185,23 @@ namespace ModularMonotlithPlugIn.Controllers
                 if (dynamic == null)
                     return Content("dynamic form module is not loaded.");
 
-                if (FormMode == "INSERT")
+                if (model.FormMode == "INSERT")
                 {
                     var message = await dynamic.SaveFormdataAsync(model);
-                    TempData["ToastType"] = message.result == 1 ? "success" : "error";
-                    TempData["ToastMessage"] = message.errorMessage;
-                    return View("ViewFrmList");
+                    //return View("ViewFrmList");
+                    return Json(new { result = message.result, errorMessage = message.errorMessage });
+
                 }
-                else if (FormMode== "UPDATE")
+                else if (model.FormMode == "UPDATE")
                 {
                     var message = await dynamic.UpdateFormdataAsync(model);
                     TempData["ToastType"] = message.result == 1 ? "success" : "error";
-                    TempData["ToastMessage"] = message.errorMessage;
-                    return View("ViewFrmList");
+                    
+                    return Json( new { result = message.result, errorMessage = message.errorMessage} );
+
                 }
-
-
-
-                return View(model);
             }
-
-
-            return View(model); // Keep user inputs if model is invalid
+            return View(); // Keep user inputs if model is invalid
         }
 
         public async Task GetSqlDataTypeWithField()
@@ -281,7 +277,7 @@ namespace ModularMonotlithPlugIn.Controllers
 
         [HttpPost]
         public async Task<IActionResult> SaveDynamicFormData(IFormCollection form)
-        {
+       {
             var formData = new Dictionary<string, string>();
 
             foreach (var key in form.Keys)
@@ -300,10 +296,15 @@ namespace ModularMonotlithPlugIn.Controllers
             try
             {
 
-                int metaData = dynamic.saveDynamicFormDetailRepo(formData);
-
-                TempData["ToastrSuccess"] = "Form saved successfully.";
-                return RedirectToAction("DynamicView", new { formId = formId });
+                var metaData = await dynamic.saveDynamicFormDetailRepo(formData);
+                if (metaData.result == 1)
+                {
+                    TempData["ToastrSuccess"] = metaData.errorMessage;
+                }
+                else if(metaData.result==0){
+                    TempData["ToastrError"] = metaData.errorMessage;
+                }
+                    return RedirectToAction("DynamicView", new { formId = formId });
             }
             catch (Exception ex)
             {

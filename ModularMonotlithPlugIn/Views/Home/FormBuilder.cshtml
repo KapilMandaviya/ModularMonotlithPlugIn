@@ -164,214 +164,176 @@
 				</div>
 
 				<div class="card-body">
-					@* class="needs-validation" novalidate *@
-					<form asp-controller="Home" asp-action="FormBuilder" method="post">
-						<div class="row mb-3">
-
-							<div class="col-md-6">
-								<label for="MenuDto.MenuId" class="form-label">Menu *</label>
-								<select asp-for="MenuDto.MenuId" asp-items="ViewBag.Menus" id="MenuId_load" class="form-control" required>
-									<option value="0">-- Select Menu --</option>
-								</select>
-							</div>
-
-						
-							<!-- Show disabled SubMenu dropdown -->
-							<div class="col-md-6">
-								<label for="MenuDto.SubMenuId" class="form-label">Sub Menu</label>
-								@if (Model.Id != null && Model.Id!= 0)
-								{
-									 
-									<select asp-for="MenuDto.SubMenuId" asp-items="ViewBag.subMenu" id="SubMenuId_load" class="form-control" required>
-										<option value="0" disabled>-- Select Submenu --</option>
-									</select>
-								}
-								else
-								{
-									<select asp-for="MenuDto.SubMenuId"  id="SubMenuId_load" class="form-control" required>
-										<option value="0" selected disabled>-- Select Submenu --</option>
-									</select>
-								}
-								
-							</div>
-
+				@* 	<form id="dynamicForm" method="post"> *@
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<label for="MenuDto.MenuId" class="form-label">Menu *</label>
+							<select asp-for="MenuDto.MenuId" asp-items="ViewBag.Menus" id="MenuId_load" class="form-control" required>
+								<option value="0">-- Select Menu --</option>
+							</select>
 						</div>
-						<div class="form-group">
-							<label class="form-label">Form Name * </label>
-							<input asp-for="FormName" class="form-control" required />
-						</div>
-
-						<div class="form-group">
-							<label class="form-label">Table Name * </label>
-							@if (Model.TableName != null)
+						<div class="col-md-6">
+							<label for="MenuDto.SubMenuId" class="form-label">Sub Menu</label>
+							@if (Model.Id != null && Model.Id != 0)
 							{
-								<input asp-for="TableName" class="form-control" required readonly oninput="sanitizeFieldName(this)" />
+								<select asp-for="MenuDto.SubMenuId" asp-items="ViewBag.subMenu" id="SubMenuId_load" class="form-control" required>
+									<option value="0" disabled>-- Select Submenu --</option>
+								</select>
 							}
 							else
 							{
-								<input asp-for="TableName" class="form-control" required oninput="sanitizeFieldName(this)" />
+								<select asp-for="MenuDto.SubMenuId" id="SubMenuId_load" class="form-control" required>
+									<option value="0" selected disabled>-- Select Submenu --</option>
+								</select>
 							}
 						</div>
-
-
-						
-
-						@* <input type="hidden" id="FormMode" name="FormMode" value="(@Model.FormName != null || @Model.FormName !=''): UPDATE:INSERT" /> *@
-						<input type="hidden" id="FormMode" name="FormMode"value="@(string.IsNullOrEmpty(Model.FormName) ? "INSERT" : "UPDATE")" />
-
-						<input asp-for="Id" type="hidden" />
-
-						<div class="table-responsive">
-							<table class="table table-bordered table-hover" id="fieldsTable">
-								<thead class="thead-light">
-									<tr>
-										<th width="5%">Action</th>
-										<th width="12%">Field Name *</th>
-										<th width="12%">Label *</th>
-										<th width="10%">Data Type *</th>
-										<th width="10%">Field Type *</th>
-										<th width="8%">Length/Value</th>
-										<th width="8%">Default</th>
-										<th width="5%">Required</th>
-										<th width="5%">Duplicate</th>
-										<th width="10%">Tooltip</th>
-										<th width="10%">CSS Classes</th>
-										<th width="5%">Position</th>
-										<th width="15%">Static Options</th>
-										<th width="15%">Dynamic Source (Table|Value|Text)</th>
-									</tr>
-								</thead>
-								<tbody id="fieldsBody">
-									@if (Model?.Fields != null && Model.Fields.Any())
+					</div>
+					<div class="form-group">
+						<label class="form-label">Form Name * </label>
+						<input asp-for="FormName" id="FormName" class="form-control" required />
+					</div>
+					<div class="form-group">
+						<label class="form-label">Table Name * </label>
+						@if (Model.TableName != null)
+						{
+							<input asp-for="TableName" id="TableName" class="form-control" required readonly oninput="sanitizeFieldName(this)" />
+						}
+						else
+						{
+							<input asp-for="TableName" id="TableName" class="form-control" required oninput="sanitizeFieldName(this)" />
+						}
+					</div>
+					<input type="hidden" id="FormMode" name="FormMode" value="@(string.IsNullOrEmpty(Model.FormName) ? "INSERT" : "UPDATE")" />
+					<input asp-for="Id" type="hidden" id="Id" />
+					<div class="table-responsive">
+						<table class="table table-bordered table-hover" id="fieldsTable">
+							<thead class="thead-light">
+								<tr>
+									<th width="5%">Action</th>
+									<th width="12%">Field Name *</th>
+									<th width="12%">Label *</th>
+									<th width="10%">Data Type *</th>
+									<th width="10%">Field Type *</th>
+									<th width="8%">Length/Value</th>
+									<th width="8%">Default</th>
+									<th width="5%">Required</th>
+									<th width="5%">Duplicate</th>
+									<th width="10%">Tooltip</th>
+									<th width="10%">CSS Classes</th>
+									<th width="5%">Position</th>
+									<th width="15%">Static Options</th>
+									<th width="15%">Dynamic Source (Table|Value|Text)</th>
+								</tr>
+							</thead>
+							<tbody id="fieldsBody">
+								@if (Model?.Fields != null && Model.Fields.Any())
+								{
+									foreach (var field in Model.Fields)
 									{
-										foreach (var field in Model.Fields)
-										{
-											<tr>
-												<input type="hidden" class="field-Id" value="@field.Id" />
-												<td class="text-center">
-													<button type="button" class="btn btn-sm btn-danger remove-fieldDynamic"><i class="fas fa-trash-alt" ></i> Remove</button>
-												</td>
-												<td><input type="text" class="form-control field-name" required value="@field.FieldName" oninput="sanitizeFieldName(this)" readonly /></td>
-												<td><input type="text" class="form-control field-label" required value="@field.Label" /></td>
-												<td>
-													@Html.DropDownList("Datatype",
-													new SelectList((List<SelectListItem>)ViewBag.sqlDataType, "Value", "Text", field.DataType),
-													"-- Select Data Type --",
-													new { @class = "form-control data-type Datatype", required = "required", disabled = "disabled" }
-													)
-
-												</td>
-												<td>
-													@Html.DropDownList("formUserControl",
-													new SelectList((List<SelectListItem>)ViewBag.formUserControl, "Value", "Text", field.FieldType),
-													"-- Select Form control --",
-													new { @class = "form-control data-type formUserControl", required = "required", disabled = "disabled" }
-													)
-
-												</td>
-
-												<td>
-													<input type="@(field.LengthValue == "MAX" ? "text" : "number")"
-														   min="1"
-														   class="form-control field-length"
-														   value="@field.LengthValue"
-														   required
-														   readonly />
-												</td>
-
-												@* <td><input type="number" min="1" class="form-control field-length" value="@field.LengthValue" required readonly /></td> *@
-												<td><input type="text" class="form-control field-default" value="@field.DefaultValue" /></td>
-												<td class="text-center"><input type="checkbox" class="form-check-input field-required" @(field.Required ? "checked" : "") readonly /></td>
-												<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" @(field.Duplicate ? "checked" : "") /></td>
-												<td><input type="text" class="form-control field-tooltip" value="@field.Tooltip" /></td>
-												<td><input type="text" class="form-control field-css" value="@field.CssClass" /></td>
-												<td><input type="number" class="form-control field-position" value="@field.Position" min="1" /></td>
-												<td><input type="text" class="form-control field-options" value="@field.OptionsJson" readonly /></td>
-												<td>
-													<input type="text" class="form-control field-datasource"
-														   value="@(string.IsNullOrEmpty(field.DataSourceTable) || string.IsNullOrEmpty(field.DataSourceValueColumn) || string.IsNullOrEmpty(field.DataSourceTextColumn)
-														   ? "": $"{field.DataSourceTable}|{field.DataSourceValueColumn}|{field.DataSourceTextColumn}")" readonly />
-												</td>
-
-											</tr>
-										}
-									}
-									else
-									{
-										<!-- Keep one blank row for new entry -->
 										<tr>
-											<input type="hidden" class="field-Id"   />
-											<td class="text-center"><button type="button" class="btn btn-sm btn-danger remove-field" ><i class="fas fa-trash-alt"></i> Remove</button></td>
-											<td><input type="text" class="form-control field-name" required oninput="sanitizeFieldName(this)" /></td>
-											<td><input type="text" class="form-control field-label" required /></td>
-											<td>@Html.DropDownList("Datatype", (List<SelectListItem>)ViewBag.sqlDataType, "-- Select Data Type --", new { @class = "form-control data-type Datatype", required = "required" })</td>
-											<td>@Html.DropDownList("formUserControl", (List<SelectListItem>)ViewBag.formUserControl, "-- Select Form control --", new { @class = "form-control data-type formUserControl", required = "required" })</td>
-
-											@* <td>
-												<div class="d-flex align-items-center">
-													<input type="number" class="form-control field-length" required min="1" />
-													<input type="checkbox" class="form-check-input field-max-length" title="Use as max length" />
-												</div>
-											</td> *@
-											<td>
-												<div class="d-flex align-items-center" style="gap: 10px; width: 100%;">
-													<div style="flex: 1;">
-														<input type="number" placeholder="Minimum 1 is required"
-															   class="form-control field-length" min="1" style="width: 100%;" />
-													</div>
-													<div class="form-check" id="maxLengthCheckbox" style="flex: 1; display: none;">
-														<input class="form-check-input field-max-length" type="checkbox" id="field-max-length" />
-														<label class="form-check-label field-max-length" for="isMaxLength">MAX</label>
-													</div>
-												</div>
+											<input type="hidden" class="field-Id" value="@field.Id" />
+											<input type="hidden" class="field-isNew" value="false" />
+											<td class="text-center">
+												<button type="button" class="btn btn-sm btn-danger remove-fieldDynamic"><i class="fas fa-trash-alt"></i> Remove</button>
 											</td>
-
-
-											@* <td><input type="number" class="form-control field-length" required min="1" /></td> *@
-											<td><input type="text" class="form-control field-default" /></td>
-											<td class="text-center"><input type="checkbox" class="form-check-input field-required" /></td>
-											<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" /></td>
-											<td><input type="text" class="form-control field-tooltip" placeholder="Tooltip text" /></td>
-											<td><input type="text" class="form-control field-css" placeholder="e.g., col-md-6" /></td>
-											<td><input type="number" class="form-control field-position" value="1" min="1" /></td>
-											<td><input type="text" class="form-control field-options" placeholder="e.g., Male,Female,Other" /></td>
-											<td><input type="text" class="form-control field-datasource" placeholder="e.g., GenderTable|Id|Name" /></td>
+											<td><input type="text" class="form-control field-name" required value="@field.FieldName" oninput="sanitizeFieldName(this)" readonly /></td>
+											<td><input type="text" class="form-control field-label" required value="@field.Label" /></td>
+											<td>
+												@Html.DropDownList("Datatype",
+												new SelectList((List<SelectListItem>)ViewBag.sqlDataType, "Value", "Text", field.DataType),
+												"-- Select Data Type --",
+												new { @class = "form-control data-type Datatype", required = "required", disabled = "disabled" })
+											</td>
+											<td>
+												@Html.DropDownList("formUserControl",
+												new SelectList((List<SelectListItem>)ViewBag.formUserControl, "Value", "Text", field.FieldType),
+												"-- Select Form control --",
+												new { @class = "form-control data-type formUserControl", required = "required", disabled = "disabled" })
+											</td>
+											<td>
+												<input type="@(field.LengthValue == "MAX" ? "text" : "number")"
+														min="1"
+														class="form-control field-length"
+														value="@field.LengthValue"
+														required
+														readonly />
+											</td>
+											<td><input type="text" class="form-control field-default" value="@field.DefaultValue" /></td>
+											<td class="text-center"><input type="checkbox" class="form-check-input field-required" @(field.Required ? "checked" : "") readonly /></td>
+											<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" @(field.Duplicate ? "checked" : "") /></td>
+											<td><input type="text" class="form-control field-tooltip" value="@field.Tooltip" /></td>
+											<td><input type="text" class="form-control field-css" value="@field.CssClass" /></td>
+											<td><input type="number" class="form-control field-position" value="@field.Position" min="1" /></td>
+											<td><input type="text" class="form-control field-options" value="@field.OptionsJson" readonly /></td>
+											<td>
+												<input type="text" class="form-control field-datasource"
+														value="@(string.IsNullOrEmpty(field.DataSourceTable) || string.IsNullOrEmpty(field.DataSourceValueColumn) || string.IsNullOrEmpty(field.DataSourceTextColumn)
+														? "" : $"{field.DataSourceTable}|{field.DataSourceValueColumn}|{field.DataSourceTextColumn}")" readonly />
+											</td>
 										</tr>
 									}
-								</tbody>
-
-							</table>
-						</div>
-
-						<div class="mt-3">
-							<button type="button" class="btn btn-primary add-field">
-								<i class="fas fa-plus-circle"></i> Add Field
-							</button>
-							<button type="submit" class="btn btn-success save-form">
-								<i class="fas fa-save"></i> Save Form
-							</button>
-						</div>
-
-						<select id="dataTypeOptionsTemplate" class="d-none">
-							@Html.Raw("<option value=\"\">-- Select Data Type --</option>")
-							@foreach (var item in (List<SelectListItem>)ViewBag.sqlDataType)
-							{
-								var option = $"<option value=\"{item.Value}\"{(item.Selected ? " selected" : "")}>{item.Text}</option>";
-								@Html.Raw(option)
-							}
-						</select>
-
-						<select id="formControlOptionsTemplate" class="d-none">
-							@Html.Raw("<option value=\"\">-- Select Form Control --</option>")
-							@foreach (var item in (List<SelectListItem>)ViewBag.formUserControl)
-							{
-								var option = $"<option value=\"{item.Value}\"{(item.Selected ? " selected" : "")}>{item.Text}</option>";
-								@Html.Raw(option)
-							}
-						</select>
-						@* <input type="hidden" id="fieldData" name="FieldsJson" /> *@
-						<input type="hidden" id="fieldData" name="FieldsJson" value="" />
-					</form>
+								}
+								else
+								{
+									<tr>
+										<input type="hidden" class="field-Id" />
+										<input type="hidden" class="field-isNew" value="true" />
+										<td class="text-center"><button type="button" class="btn btn-sm btn-danger remove-field"><i class="fas fa-trash-alt"></i> Remove</button></td>
+										<td><input type="text" class="form-control field-name" required oninput="sanitizeFieldName(this)" /></td>
+										<td><input type="text" class="form-control field-label" required /></td>
+										<td>@Html.DropDownList("Datatype", (List<SelectListItem>)ViewBag.sqlDataType, "-- Select Data Type --", new { @class = "form-control data-type Datatype", required = "required" })</td>
+										<td>@Html.DropDownList("formUserControl", (List<SelectListItem>)ViewBag.formUserControl, "-- Select Form control --", new { @class = "form-control data-type formUserControl", required = "required" })</td>
+										<td>
+											<div class="d-flex align-items-center" style="gap: 10px; width: 100%;">
+												<div style="flex: 1;">
+													<input type="number" placeholder="Minimum 1 is required"
+															class="form-control field-length" min="1" style="width: 100%;" />
+												</div>
+												<div class="form-check" id="maxLengthCheckbox" style="flex: 1; display: none;">
+													<input class="form-check-input field-max-length" type="checkbox" id="field-max-length" />
+													<label class="form-check-label field-max-length" for="isMaxLength">MAX</label>
+												</div>
+											</div>
+										</td>
+										<td><input type="text" class="form-control field-default" /></td>
+										<td class="text-center"><input type="checkbox" class="form-check-input field-required" /></td>
+										<td class="text-center"><input type="checkbox" class="form-check-input field-duplicate" /></td>
+										<td><input type="text" class="form-control field-tooltip" placeholder="Tooltip text" /></td>
+										<td><input type="text" class="form-control field-css" placeholder="e.g., col-md-6" /></td>
+										<td><input type="number" class="form-control field-position" value="1" min="1" /></td>
+										<td><input type="text" class="form-control field-options" placeholder="e.g., Male,Female,Other" /></td>
+										<td><input type="text" class="form-control field-datasource" placeholder="e.g., GenderTable|Id|Image" /></td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+					<div class="mt-3">
+						<button type="button" class="btn btn-primary add-field">
+							<i class="fas fa-plus"></i> Add Field
+						</button>
+						<button type="button" class="btn btn-success save-form-btn">
+							<i class="fas fa-save"></i> Save Form
+						</button>
+					</div>
+					<select id="dataTypeOptionsTemplate" class="d-none">
+						@Html.Raw("<option value=\"\">-- Select Option --</option>")
+						@foreach (var item in (List<SelectListItem>)ViewBag.sqlDataType)
+						{
+							var option = $"<option value=\"{item.Value}\"{(item.Selected ? " selected" : "")}>{item.Text}</option>";
+							@Html.Raw(option)
+						}
+					</select>
+					<select id="formControlOptionsTemplate" class="d-none">
+						@Html.Raw("<option value=\"\">-- Select Form Control --</option>")
+						@foreach (var item in (List<SelectListItem>)ViewBag.formUserControl)
+						{
+							var option = $"<option value=\"{item.Value}\"{(item.Selected ? " selected" : "")}>{item.Text}</option>";
+							@Html.Raw(option)
+						}
+					</select>
+					<input type="hidden" id="fieldData" name="FieldsJson" value="" />
+					 
 				</div>
 			</div>
 		</div>
@@ -388,24 +350,25 @@
 			const $fieldsBody = $('#fieldsBody');
 			const $addFieldButton = $('.add-field');
 			const $fieldDataInput = $('#fieldData');
+			//const $form = $('#dynamicForm');
+			const $saveFormButton = $('.save-form-btn');
 
 			const dataTypeOptions = $('#dataTypeOptionsTemplate').html();
 			const formControlOptions = $('#formControlOptionsTemplate').html();
 
 			function updateFieldData() {
 				const fields = [];
-
 				$fieldsBody.find('tr').each(function () {
 					const $row = $(this);
 					const fieldName = $row.find('.field-name').val()?.trim();
 					const label = $row.find('.field-label').val()?.trim();
 					const fieldId = $row.find('.field-Id').val()?.trim();
+					const isNewField = $row.find('.field-isNew').val() === 'true';
 
 					if (!fieldName || !label) return;
 
 					const fieldType = $row.find('.formUserControl option:selected').text() || "";
 					const dataType = $row.find('.Datatype option:selected').text() || "";
-
 					const parsedId = parseInt(fieldId, 10);
 					if (isNaN(parsedId)) {
 						console.error("Invalid fieldId:", fieldId);
@@ -427,8 +390,9 @@
 						OptionsJson: $row.find('.field-options').val() || "",
 						DataSourceTable: "",
 						DataSourceValueColumn: "",
-						IsMaxLength: $row.find('.field-max-length').is(':checked') // ✅ Boolean value
-
+						DataSourceTextColumn: "",
+						IsMaxLength: $row.find('.field-max-length').is(':checked'),
+						IsNewField: isNewField // Add flag for new/existing field
 					};
 
 					const dsRaw = $row.find('.field-datasource').val();
@@ -441,7 +405,6 @@
 
 					fields.push(fieldObj);
 				});
-
 				$fieldDataInput.val(JSON.stringify(fields));
 			}
 
@@ -454,16 +417,16 @@
 			$addFieldButton.on('click', function () {
 				const newRow = $(`
 					<tr>
-						<td class="text-center"><button type="button" class="btn btn-sm btn-danger remove-field" >Remove</button></td>
+						<td class="text-center"><button type="button" class="btn btn-sm btn-danger remove-field"><i class="fas fa-trash-alt"></i> Remove</button></td>
 						<td><input type="text" class="form-control field-name" required oninput="sanitizeFieldName(this)"/></td>
 						<td><input type="text" class="form-control field-label" required /></td>
 						<td><select class="form-control Datatype" required>${dataTypeOptions}</select></td>
 						<td><select class="form-control formUserControl" required>${formControlOptions}</select></td>
 						<td>
-								<div class="d-flex align-items-center" style="gap: 10px; width: 100%;">
+							<div class="d-flex align-items-center" style="gap: 10px; width: 100%;">
 								<div style="flex: 1;">
 									<input type="number" placeholder="Minimum 1 is required"
-											class="form-control field-length" min="1" style="width: 100%;" />
+										   class="form-control field-length" min="1" style="width: 100%;" />
 								</div>
 								<div class="form-check" id="maxLengthCheckbox" style="flex: 1; display: none;">
 									<input class="form-check-input field-max-length" type="checkbox" id="field-max-length" />
@@ -480,16 +443,12 @@
 						<td><input type="text" class="form-control field-options" placeholder="Static options (e.g., Yes:1|No:0)" /></td>
 						<td><input type="text" class="form-control field-datasource" placeholder="Table|ValueColumn|TextColumn" /></td>
 						<td><input type="hidden" class="field-Id" value="0" /></td>
+						 <td><input type="hidden" class="field-isNew" value="true" /></td>
 					</tr>
 				`);
-
 				$fieldsBody.append(newRow);
-				handleMaxCheckboxVisibility($(this));
-				//newRow.find('.remove-fieldDynamic').on('click', handleRemoveField());
+				handleMaxCheckboxVisibility(newRow);
 				newRow.on('input change', updateFieldData);
-
-				updateFieldData();
-
 				newRow.find('.remove-field').on('click', function () {
 					newRow.remove();
 					updateFieldData();
@@ -501,13 +460,13 @@
 				const $row = $(this).closest('tr');
 				const fieldId = $row.find('.field-Id').val()?.trim();
 				const parsedId = parseInt(fieldId, 10);
-					if (isNaN(parsedId)) {
-						console.error("Invalid fieldId:", fieldId);
-					}
+				if (isNaN(parsedId)) {
+					console.error("Invalid fieldId:", fieldId);
+				}
 				if (confirm("Are you sure you want to remove this field?")) {
-					if (parsedId && !isNaN(parsedId) && parseInt(parsedId) > 0) {
+					if (parsedId && !isNaN(parsedId) && parsedId > 0) {
 						$.ajax({
-							url: '/Home/DeleteField', // <-- Replace with your actual controller route
+							url: '/Home/DeleteField',
 							type: 'POST',
 							data: { id: parsedId },
 							success: function () {
@@ -529,16 +488,62 @@
 			}
 
 			$fieldsBody.on('click', '.remove-field', function () {
-		$(this).closest('tr').remove();
-		updateFieldData();
-		updatePositions();
-		});
-			 $fieldsBody.on('click', '.remove-fieldDynamic', handleRemoveField);
-
-			$('form').on('submit', function () {
-				document.querySelector(".Datatype").disabled = false;
-				document.querySelector(".formUserControl").disabled = false;
+				$(this).closest('tr').remove();
 				updateFieldData();
+				updatePositions();
+			});
+
+			$fieldsBody.on('click', '.remove-fieldDynamic', handleRemoveField);
+
+			$saveFormButton.on('click', function (e) {
+				e.preventDefault();
+				// if (!$form[0].checkValidity()) {
+				// 	$form[0].reportValidity();
+				// 	return;
+				// }
+
+				
+				updateFieldData();
+				//var FormMode= $('#FormMode').val();
+				const formData = {
+					MenuDto: {
+						MenuId: $('#MenuId_load').val(),
+						SubMenuId: $('#SubMenuId_load').val()
+					},
+					FormMode: $('#FormMode').val(),
+					FormName: $("#FormName").val(),
+					TableName: $("#TableName").val(),
+					Id: $("#Id").val(),
+					FieldsJson:  $('#fieldData').val(),
+				};
+				
+				$.ajax({
+					url: '/Home/FormBuilder',
+					type: 'POST',
+					contentType: 'application/json',
+
+					data:JSON.stringify(formData),
+					success: function (response) {
+						console.log(response.errorMessage);
+						console.log(response.result);
+						if (response.result==1) {
+							toastr.success(response.errorMessage || "Form saved successfully!");
+								$('.Datatype').prop('disabled', false);
+								$('.formUserControl').prop('disabled', false);
+							// Optionally redirect to form list
+								window.location.href = '@Url.Action("ViewFrmList", "Home")';
+						} else {
+							toastr.error(response.errorMessage || "Error saving form.");
+						}
+					},
+					error: function (xhr) {
+						const errorMessage = xhr.responseJSON?.message || "An error occurred while saving the form.";
+						toastr.error(errorMessage);
+					},
+					complete: function () {
+						 
+					}
+				});
 			});
 
 			toastr.options = {
@@ -556,83 +561,67 @@
 		{
 			<text>toastr.error("@TempData["ErrorMessage"]");</text>
 		}
-		@if (TempData["ToastMessage"] != null && TempData["ToastType"] != null)
-		{
-			if (TempData["ToastType"].ToString() == "success")
-			{
-				<text>toastr.success("@TempData["ToastMessage"]");</text>
-			}
-			else
-			{
-				<text>toastr.error("@TempData["ToastMessage"]");</text>
-			}
-		}
 
-			// Menu/Submenu dynamic loading
-			const $menuDropdown = $('#MenuId_load');
-			const $submenuDropdown = $('#SubMenuId_load');
+		 
 
-			$menuDropdown.on('change', function () {
-				const selectedMenuId = $(this).val();
-				$submenuDropdown.empty().append('<option value="0">-- Select Submenu --</option>').prop('readonly', true);
+		const $menuDropdown = $('#MenuId_load');
+		const $submenuDropdown = $('#SubMenuId_load');
 
-				if (selectedMenuId) {
-					$.ajax({
-						url: `/Home/GetSubMenus`,
-						type: 'GET',
-						data: { menuId: selectedMenuId },
-						success: function (data) {
-							 
-							if (data.length > 0) {
-								$.each(data, function (i, item) {
-									
-									$submenuDropdown.append(
-										$('<option>', {
-											value: item.subMenuId,
-											text: item.subMenuName
-										})
-									);
-								});
-								$submenuDropdown.prop('readonly', false);
-							}
-						},
-						error: function (xhr, status, error) {
-							console.error('Error fetching submenus:', error);
+		$menuDropdown.on('change', function () {
+			const selectedMenuId = $(this).val();
+			$submenuDropdown.empty().append('<option value="0">-- Select Submenu --</option>').prop('readonly', true);
+			if (selectedMenuId) {
+				$.ajax({
+					url: '/Home/GetSubMenus',
+					type: 'GET',
+					data: { menuId: selectedMenuId },
+					success: function (data) {
+						if (data.length > 0) {
+							$.each(data, function (i, item) {
+								$submenuDropdown.append(
+									$('<option>', {
+										value: item.subMenuId,
+										text: item.subMenuName
+									})
+								);
+							});
+							$submenuDropdown.prop('readonly', false);
 						}
-					});
-				}
-			});
+					},
+					error: function (xhr, status, error) {
+						console.error('Error fetching submenus:', error);
+					}
+				});
+			}
+		});
 
-			$('#fieldsBody').on('change', '.Datatype', function () {
-				const $row = $(this).closest('tr');
-				handleMaxCheckboxVisibility($row);
-			});
+		$('#fieldsBody').on('change', '.Datatype', function () {
+			const $row = $(this).closest('tr');
+			handleMaxCheckboxVisibility($row);
+		});
 
-			$('#fieldsBody').on('change', '.field-max-length', function () {
-				const $row = $(this).closest('tr');
-				toggleFieldLengthInput($row);
-			});
+		$('#fieldsBody').on('change', '.field-max-length', function () {
+			const $row = $(this).closest('tr');
+			toggleFieldLengthInput($row);
+		});
 
-			// Initial setup for all rows
-			$('#fieldsBody tr').each(function () {
-				handleMaxCheckboxVisibility($(this));
-			});
-	 
+		$('#fieldsBody tr').each(function () {
+			handleMaxCheckboxVisibility($(this));
+		});
 
 		function handleMaxCheckboxVisibility($row) {
 			const selected = $row.find('.Datatype').val()?.toLowerCase();
 			const typesWithMax = ['varchar', 'nvarchar', 'varbinary'];
-
 			const $checkboxContainer = $row.find('#maxLengthCheckbox');
 			const $checkbox = $row.find('.field-max-length');
 			const $input = $row.find('.field-length');
 
 			$checkbox.prop('checked', false);
-				$input.prop('disabled', false);
+			$input.prop('disabled', false);
 
 			if (typesWithMax.includes(selected)) {
 				$checkboxContainer.show();
-				toggleFieldLengthInput($row); // Re-evaluate checkbox state
+				toggleFieldLengthInput($row);
 			} else {
 				$checkboxContainer.hide();
 				$checkbox.prop('checked', false);
@@ -643,16 +632,12 @@
 		function toggleFieldLengthInput($row) {
 			const $checkbox = $row.find('.field-max-length');
 			const $input = $row.find('.field-length');
-
 			if ($checkbox.is(':checked')) {
-			 
 				$input.prop('disabled', true);
 			} else {
-				 
 				$input.prop('disabled', false);
 			}
 		}
-
-		});
-	</script> 
+	});
+	</script>
 }

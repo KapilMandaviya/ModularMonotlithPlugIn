@@ -80,7 +80,7 @@ namespace UserContract
         Task<List<FormUserControl>> getAllFormUserControl();
         Task<DynamicFormModel> getFormByTableMetadata(int formId);
         Task<List<FormField>> GetOptionsAsync(string tableName, string valueField, string textField);
-        int saveDynamicFormDetailRepo(Dictionary<string, string> keyValuePairs);
+        Task<(int result, string errorMessage)> saveDynamicFormDetailRepo(Dictionary<string, string> keyValuePairs);
 
         Task<List<DynamicFormModel>> getAllFormList();
 
@@ -105,6 +105,8 @@ namespace UserContract
         public string FormName { get; set; }
         [Required]
         public string TableName { get; set; }
+
+        public string FormMode { get; set; }
         
         public List<DynamicField> Fields { get; set; } = new List<DynamicField>();
         public string FieldsJson { get; set; } // Temporary property to capture JSON string
@@ -147,6 +149,8 @@ namespace UserContract
         public List<SelectListItem> DynamicOptions { get; set; } = new();
 
         public string? VALUE { get; set; }
+        public bool? IsNewField { get; set; }
+        
     }
 
      

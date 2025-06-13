@@ -8,7 +8,7 @@
 
 <h2 class="text-center my-4">@Model.FormName</h2>
 
-<form method="post" action="saveDynamicformData" class="needs-validation" novalidate>
+<form method="post" action="saveDynamicformData" class="needs-validation">
 	<input type="hidden" name="FormName" value="@Model.FormName" />
 	<input type="hidden" name="TableName" value="@Model.TableName" />
 	<input type="hidden" name="FormId" value="@Model.Id" />
@@ -73,7 +73,15 @@
 							}
 							else
 							{
-								<input type="@field.FieldType" name="@field.FieldName" class="form-control" title="@field.Tooltip" required="@(field.Required)" />
+								if (field.Required)
+								{
+									<input type="@field.FieldType" name="@field.FieldName" class="form-control" title="@field.Tooltip" required/>
+								}
+								else
+								{
+									<input type="@field.FieldType" name="@field.FieldName" class="form-control" title="@field.Tooltip" />
+										
+								}
 							}
 						</div>
 					</div>
